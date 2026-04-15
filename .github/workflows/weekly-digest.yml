@@ -1,0 +1,48 @@
+# Weekly job: generate digest + push to Teams
+# Runs every Monday at 17:00 UTC (= 9:00 AM PST)
+name: Weekly Digest & Teams Push
+
+on:
+  schedule:
+    - cron: "0 17 * * 1"  # 17:00 UTC Monday = 9:00 AM PST
+  workflow_dispatch:       # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate weekly digest
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
+        run: python main.py digest
+
+      - name: Push to Teams
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: python main.py push
+
+      - name: Commit digest
+        run: |
+          git config user.name "ft-news-bot"
+          git config user.email "ft-news-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Weekly digest: $(date -u +%Y-%m-%d)"
+          git push

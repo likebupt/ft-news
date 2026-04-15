@@ -1,0 +1,20 @@
+# Core dependencies
+httpx==0.28.1
+feedparser==6.0.11
+beautifulsoup4==4.13.4
+lxml==5.3.1
+
+# Azure OpenAI for summarization
+openai==1.68.0
+
+# Scheduling
+apscheduler==3.11.0
+
+# CLI
+click==8.1.8
+
+# Environment
+python-dotenv==1.1.0
+
+# Logging
+rich==14.0.0

@@ -1,0 +1,43 @@
+# Daily job: fetch finetuning news + summarize
+# Runs every day at 01:00 UTC (= 6:00 PM PST previous day)
+name: Daily Fetch & Summarize
+
+on:
+  schedule:
+    - cron: "0 1 * * *"  # 01:00 UTC daily
+  workflow_dispatch:       # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: write          # Needed to push data/ commits
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily fetch + summarize
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
+        run: python main.py fetch
+
+      - name: Commit and push data
+        run: |
+          git config user.name "ft-news-bot"
+          git config user.email "ft-news-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Daily fetch: $(date -u +%Y-%m-%d)"
+          git push
