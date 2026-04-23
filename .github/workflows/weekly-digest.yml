@@ -1,6 +1,6 @@
-# Weekly job: generate digest + push to Teams
+# Weekly job: generate digest + rebuild site
 # Runs every Monday at 17:00 UTC (= 9:00 AM PST)
-name: Weekly Digest & Teams Push
+name: Weekly Digest & Deploy
 
 on:
   schedule:
@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   digest:
@@ -34,10 +36,8 @@ jobs:
           AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
         run: python main.py digest
 
-      - name: Push to Teams
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-        run: python main.py push
+      - name: Build static site
+        run: python main.py build
 
       - name: Commit digest
         run: |
@@ -46,3 +46,19 @@ jobs:
           git add data/
           git diff --cached --quiet || git commit -m "Weekly digest: $(date -u +%Y-%m-%d)"
           git push
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: digest
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

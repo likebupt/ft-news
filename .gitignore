@@ -12,6 +12,9 @@ __pycache__/
 # Logs
 logs/
 
+# Generated site
+_site/
+
 # IDE
 .vscode/
 .idea/

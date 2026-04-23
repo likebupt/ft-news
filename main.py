@@ -110,9 +110,9 @@ def digest(date: str | None) -> None:
     help="Reference date to find the digest (ISO format). Defaults to today.",
 )
 def push(date: str | None) -> None:
-    """Push the latest weekly digest to Teams."""
+    """Send the latest weekly digest via email."""
     from config import DATA_DIR
-    from publisher import send_to_teams
+    from publisher import send_email
 
     ref = datetime.fromisoformat(date).replace(tzinfo=timezone.utc) if date else datetime.now(timezone.utc)
     from datetime import timedelta
@@ -126,14 +126,24 @@ def push(date: str | None) -> None:
         sys.exit(1)
 
     digest_text = digest_path.read_text(encoding="utf-8")
-    click.echo("Pushing weekly digest to Teams...")
-    success = send_to_teams(digest_text)
+    click.echo("Sending weekly digest email...")
+    success = send_email(digest_text)
 
     if success:
-        click.echo("Successfully sent to Teams!")
+        click.echo("Email sent successfully!")
     else:
-        click.echo("Failed to send to Teams. Check logs for details.")
+        click.echo("Failed to send email. Check logs for details.")
         sys.exit(1)
+
+
+@cli.command()
+def build() -> None:
+    """Build the static website from collected data."""
+    from site_builder import build_site
+
+    click.echo("Building static site...")
+    out = build_site()
+    click.echo(f"Site built → {out}")
 
 
 @cli.command()

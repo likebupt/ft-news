@@ -37,21 +37,21 @@ def _run_daily_job() -> None:
 
 
 def _run_weekly_job() -> None:
-    """Generate weekly digest and push to Teams."""
+    """Generate weekly digest and send via email."""
     from digest import generate_weekly_digest
-    from publisher import send_to_teams
+    from publisher import send_email
 
     logger.info("=== Starting weekly digest job ===")
     digest, path = generate_weekly_digest()
 
     if digest.strip():
-        success = send_to_teams(digest)
+        success = send_email(digest)
         if success:
-            logger.info("Weekly digest sent to Teams successfully.")
+            logger.info("Weekly digest email sent successfully.")
         else:
-            logger.error("Failed to send weekly digest to Teams.")
+            logger.error("Failed to send weekly digest email.")
     else:
-        logger.warning("Empty digest, skipping Teams push.")
+        logger.warning("Empty digest, skipping email.")
 
     logger.info("=== Weekly digest job complete ===")
 

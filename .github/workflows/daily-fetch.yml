@@ -1,4 +1,4 @@
-# Daily job: fetch finetuning news + summarize
+# Daily job: fetch finetuning news + summarize + rebuild site
 # Runs every day at 01:00 UTC (= 6:00 PM PST previous day)
 name: Daily Fetch & Summarize
 
@@ -8,7 +8,9 @@ on:
   workflow_dispatch:       # Allow manual trigger from GitHub UI
 
 permissions:
-  contents: write          # Needed to push data/ commits
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   fetch:
@@ -34,10 +36,29 @@ jobs:
           AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
         run: python main.py fetch
 
-      - name: Commit and push data
+      - name: Build static site
+        run: python main.py build
+
+      - name: Commit data
         run: |
           git config user.name "ft-news-bot"
           git config user.email "ft-news-bot@users.noreply.github.com"
           git add data/
           git diff --cached --quiet || git commit -m "Daily fetch: $(date -u +%Y-%m-%d)"
           git push
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: fetch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

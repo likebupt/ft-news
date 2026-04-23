@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - FT News Weekly</title>
+    <link rel="alternate" type="application/rss+xml" title="FT News Weekly RSS" href="/feed.xml">
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-dark: #005a9e;
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --tag-bg: #e0f2fe;
+            --tag-text: #0369a1;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            text-decoration: none;
+            color: white;
+        }
+        .logo span { font-weight: 300; opacity: 0.85; }
+        nav a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            margin-left: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        nav a:hover { color: white; }
+        nav a.active { color: white; border-bottom: 2px solid white; padding-bottom: 2px; }
+
+        /* Layout */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* Week header */
+        .week-header {
+            margin-bottom: 32px;
+        }
+        .week-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .week-header .date-range {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        .week-nav {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .week-nav a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .week-nav a:hover { text-decoration: underline; }
+
+        /* Content card */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: var(--primary-dark);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+        }
+        .card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 16px 0 8px;
+            color: var(--text);
+        }
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .card ul li {
+            position: relative;
+            padding: 8px 0 8px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 15px;
+        }
+        .card ul li:last-child { border-bottom: none; }
+        .card ul li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .card ul li a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .card ul li a:hover { text-decoration: underline; }
+        .card p {
+            margin: 8px 0;
+            font-size: 15px;
+        }
+
+        /* Tags */
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+        .tag {
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .tag:hover { background: #bae6fd; }
+
+        /* Archive sidebar / list */
+        .archive-list {
+            list-style: none;
+            padding: 0;
+        }
+        .archive-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .archive-list li:last-child { border-bottom: none; }
+        .archive-list a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .archive-list a:hover { color: var(--primary); }
+        .archive-list .date {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Daily detail */
+        .day-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .day-tab {
+            padding: 6px 16px;
+            border-radius: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .day-tab:hover { border-color: var(--primary); color: var(--primary); }
+        .day-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* TL;DR callout */
+        .tldr {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+        .tldr strong { color: var(--primary-dark); }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 32px 24px;
+            color: var(--text-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+            margin-top: 48px;
+        }
+        footer a { color: var(--primary); text-decoration: none; }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .header-inner { flex-direction: column; gap: 8px; }
+            nav a { margin-left: 12px; }
+            .card { padding: 20px 16px; }
+            .week-header h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="/" class="logo">FT News <span>Weekly</span></a>
+            <nav>
+                <a href="/" class="{{ 'active' if page == 'home' else '' }}">This Week</a>
+                <a href="/archive.html" class="{{ 'active' if page == 'archive' else '' }}">Archive</a>
+                <a href="/feed.xml">RSS</a>
+            </nav>
+        </div>
+    </header>
+    <div class="container">
+        {{ content }}
+    </div>
+    <footer>
+        <p>FT News Weekly — Finetuning & Post-Training Intelligence for <a href="https://ai.azure.com">Microsoft Foundry</a></p>
+        <p>Auto-generated from official AI company blogs and research feeds.</p>
+    </footer>
+</body>
+</html>

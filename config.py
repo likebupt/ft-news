@@ -20,8 +20,12 @@ AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY", "")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5.4-pro")
 AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2025-04-01-preview")
 
-# Teams
-TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL", "")
+# Email via Microsoft Graph API
+GRAPH_TENANT_ID = os.getenv("GRAPH_TENANT_ID", "")
+GRAPH_CLIENT_ID = os.getenv("GRAPH_CLIENT_ID", "")
+GRAPH_CLIENT_SECRET = os.getenv("GRAPH_CLIENT_SECRET", "")
+EMAIL_SENDER = os.getenv("EMAIL_SENDER", "")  # e.g. you@microsoft.com
+EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS", "")  # semicolon-separated
 
 # Schedule (PST)
 DAILY_FETCH_HOUR = int(os.getenv("DAILY_FETCH_HOUR", "18"))
