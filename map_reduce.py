@@ -116,9 +116,11 @@ from different batches of articles from the same week.
 
 Merge them into ONE polished "Weekly Finetuning & Post-Training Update":
 
-1. **TL;DR** — one standalone sentence summarising the week's overall theme \
-   or trend.  Do NOT link to any specific article or paper here.  This should \
-   read like an editor's headline, not reference a single source.
+1. **TL;DR** — 1-2 sentences that SYNTHESISE the week's overarching themes \
+   across ALL top stories and companies.  Mention the most important 2-3 themes \
+   (e.g. "competitive moves in pricing", "new RLHF methods", "safety hardening") \
+   rather than singling out one article or paper.  Think like an editor writing \
+   a newsletter subject line + one-liner for a busy PM.
 2. **Top Stories** — 3-5 most impactful items. One sentence each with [Read more](URL).
 3. **By Company** — remaining noteworthy items grouped by company. \
    One sentence sub-bullets with [Source](URL).
@@ -127,7 +129,7 @@ Merge them into ONE polished "Weekly Finetuning & Post-Training Update":
 
 Rules:
 - Be ruthlessly concise.  A busy PM should scan this in 5-10 minutes.
-- Every bullet MUST end with a clickable markdown link — EXCEPT the TL;DR which must have NO links.
+- Every bullet MUST end with a clickable markdown link.
 - Do NOT repeat the same news across sections.
 - Skip tangentially relevant items.
 - Total: ~30-50 bullet points max.
