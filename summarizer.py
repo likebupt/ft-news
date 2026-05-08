@@ -1,4 +1,4 @@
-"""LLM-based summarizer - uses Azure OpenAI to create structured summaries."""
+"""LLM-based summarizer - uses Azure AI Foundry Responses API."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from openai import AzureOpenAI
+import httpx
 
 from config import (
     AZURE_OPENAI_API_KEY,
@@ -20,15 +20,41 @@ from fetcher import Article, DailyFetchResult
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Azure OpenAI client
+# Responses API helper
 # ---------------------------------------------------------------------------
 
-def _get_client() -> AzureOpenAI:
-    return AzureOpenAI(
-        azure_endpoint=AZURE_OPENAI_ENDPOINT,
-        api_key=AZURE_OPENAI_API_KEY,
-        api_version=AZURE_OPENAI_API_VERSION,
-    )
+_TIMEOUT = httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0)
+
+
+def _call_responses_api(system_prompt: str, user_msg: str) -> str:
+    """Call the Azure AI Foundry Responses API and return the text output."""
+    url = f"{AZURE_OPENAI_ENDPOINT.rstrip('/')}/responses"
+    headers = {
+        "api-key": AZURE_OPENAI_API_KEY,
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": AZURE_OPENAI_DEPLOYMENT,
+        "instructions": system_prompt,
+        "input": user_msg,
+        "max_output_tokens": 16384,
+        "truncation": "auto",
+    }
+
+    resp = httpx.post(url, headers=headers, json=payload, timeout=_TIMEOUT)
+    if resp.status_code != 200:
+        logger.error("Responses API error %d: %s", resp.status_code, resp.text[:500])
+    resp.raise_for_status()
+    data = resp.json()
+
+    # Extract text from response output
+    for item in data.get("output", []):
+        if item.get("type") == "message":
+            for content in item.get("content", []):
+                if content.get("type") == "output_text":
+                    return content.get("text", "")
+    logger.warning("No text found in API response: %s", str(data)[:500])
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -106,31 +132,21 @@ def _format_articles_for_prompt(articles: list[Article]) -> str:
 
 
 def summarize_daily(result: DailyFetchResult) -> str:
-    """Summarize the day's articles using Azure OpenAI, return markdown."""
+    """Summarize the day's articles using Azure AI Foundry, return markdown."""
     if not result.articles:
         return f"# Daily Finetuning News - {result.date}\n\nNo relevant articles found today.\n"
 
-    client = _get_client()
-    articles_text = _format_articles_for_prompt(result.articles)
+    # Limit to top 20 articles by relevance to stay within token limits
+    articles = sorted(result.articles, key=lambda a: a.relevance_score, reverse=True)[:20]
+    articles_text = _format_articles_for_prompt(articles)
     user_msg = (
-        f"Today is {result.date}. Here are {len(result.articles)} articles "
+        f"Today is {result.date}. Here are {len(articles)} articles "
         f"collected from official AI company blogs and research feeds. "
         f"Please create the daily briefing.\n\n{articles_text}"
     )
 
-    logger.info("Sending %d articles to LLM for daily summary...", len(result.articles))
-
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_DEPLOYMENT,
-        messages=[
-            {"role": "system", "content": _DAILY_SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        temperature=0.3,
-        max_tokens=4096,
-    )
-
-    summary = response.choices[0].message.content or ""
+    logger.info("Sending %d articles to LLM for daily summary...", len(articles))
+    summary = _call_responses_api(_DAILY_SYSTEM_PROMPT, user_msg)
     logger.info("Daily summary generated (%d chars)", len(summary))
     return summary
 
@@ -151,11 +167,10 @@ def save_daily_summary(summary: str, date_str: str) -> Path:
 
 
 def summarize_weekly(daily_summaries: list[str], week_label: str) -> str:
-    """Create a weekly digest from daily summaries using Azure OpenAI."""
+    """Create a weekly digest from daily summaries using Azure AI Foundry."""
     if not daily_summaries:
         return f"# Weekly Finetuning Update - {week_label}\n\nNo news collected this week.\n"
 
-    client = _get_client()
     combined = "\n\n---\n\n".join(daily_summaries)
     user_msg = (
         f"Here are the daily finetuning/post-training briefings from {week_label}. "
@@ -163,18 +178,7 @@ def summarize_weekly(daily_summaries: list[str], week_label: str) -> str:
     )
 
     logger.info("Sending %d daily summaries to LLM for weekly digest...", len(daily_summaries))
-
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_DEPLOYMENT,
-        messages=[
-            {"role": "system", "content": _WEEKLY_SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        temperature=0.3,
-        max_tokens=4096,
-    )
-
-    digest = response.choices[0].message.content or ""
+    digest = _call_responses_api(_WEEKLY_SYSTEM_PROMPT, user_msg)
     logger.info("Weekly digest generated (%d chars)", len(digest))
     return digest
 

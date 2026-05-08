@@ -7,7 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Paths
 ROOT_DIR = Path(__file__).resolve().parent
@@ -26,6 +26,9 @@ GRAPH_CLIENT_ID = os.getenv("GRAPH_CLIENT_ID", "")
 GRAPH_CLIENT_SECRET = os.getenv("GRAPH_CLIENT_SECRET", "")
 EMAIL_SENDER = os.getenv("EMAIL_SENDER", "")  # e.g. you@microsoft.com
 EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS", "")  # semicolon-separated
+
+# Site
+SITE_BASE_PATH = os.getenv("SITE_BASE_PATH", "/ft-news")  # GitHub Pages subpath
 
 # Schedule (PST)
 DAILY_FETCH_HOUR = int(os.getenv("DAILY_FETCH_HOUR", "18"))

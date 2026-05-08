@@ -4,7 +4,10 @@ feedparser==6.0.11
 beautifulsoup4==4.13.4
 lxml==5.3.1
 
-# Azure OpenAI for summarization
+# Async ingestion
+aiohttp>=3.9,<4.0
+
+# Azure OpenAI for summarization (legacy single-pass)
 openai==1.68.0
 
 # Scheduling

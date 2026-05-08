@@ -6,6 +6,11 @@ __pycache__/
 # Environment
 .env
 
+# SQLite database (regenerated from ingestion)
+data/ft_news.db
+data/ft_news.db-wal
+data/ft_news.db-shm
+
 # Data (optional - uncomment to track summaries in git)
 # data/
 
@@ -18,6 +23,9 @@ _site/
 # IDE
 .vscode/
 .idea/
+
+# Test scripts
+_test_*.py
 
 # OS
 Thumbs.db

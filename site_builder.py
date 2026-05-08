@@ -10,14 +10,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostring
 
-from config import DATA_DIR
+from config import DATA_DIR, SITE_BASE_PATH
 
 logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 SITE_DIR = Path(__file__).resolve().parent / "_site"
 SITE_TITLE = "FT News Weekly"
-SITE_URL = ""  # Set after deployment, e.g. https://yourorg.github.io/ft-news-weekly
 
 
 # ---------------------------------------------------------------------------
@@ -27,6 +26,10 @@ SITE_URL = ""  # Set after deployment, e.g. https://yourorg.github.io/ft-news-we
 def _render(template_name: str, **kwargs: str) -> str:
     """Render a template with simple {{ var }} substitution."""
     tmpl = (TEMPLATES_DIR / template_name).read_text(encoding="utf-8")
+    # Inject base path into all absolute href/src paths
+    base = SITE_BASE_PATH.rstrip("/")
+    tmpl = tmpl.replace('href="/', f'href="{base}/')
+    tmpl = tmpl.replace('src="/', f'src="{base}/')
     for key, value in kwargs.items():
         tmpl = tmpl.replace("{{ " + key + " }}", value)
         # Handle Jinja-style conditionals simply via class replacement
@@ -184,12 +187,13 @@ def _discover_daily(week: dict) -> list[dict]:
 def _build_week_page(week: dict, prev_week: dict | None, next_week: dict | None) -> str:
     """Build the HTML page for a single week."""
     # Week navigation
+    base = SITE_BASE_PATH.rstrip("/")
     nav_html = '<div class="week-nav">'
     if next_week:
-        nav_html += f'<a href="/{next_week["slug"]}/index.html">← {next_week["label"]}</a>'
-    nav_html += '<a href="/archive.html">All Weeks</a>'
+        nav_html += f'<a href="{base}/{next_week["slug"]}/index.html">← {next_week["label"]}</a>'
+    nav_html += f'<a href="{base}/archive.html">All Weeks</a>'
     if prev_week:
-        nav_html += f'<a href="/{prev_week["slug"]}/index.html">{prev_week["label"]} →</a>'
+        nav_html += f'<a href="{base}/{prev_week["slug"]}/index.html">{prev_week["label"]} →</a>'
     nav_html += "</div>"
 
     # Day tabs
@@ -200,7 +204,7 @@ def _build_week_page(week: dict, prev_week: dict | None, next_week: dict | None)
         for d in days:
             count_badge = f" ({d['article_count']})" if d["article_count"] else ""
             day_tabs += (
-                f'<a class="day-tab" href="/{week["slug"]}/{d["name"]}.html">'
+                f'<a class="day-tab" href="{base}/{week["slug"]}/{d["name"]}.html">'
                 f'{d["label"]}{count_badge}</a>'
             )
         day_tabs += "</div>"
@@ -236,12 +240,13 @@ def _build_day_page(week: dict, day: dict) -> str:
     html_content = _md_to_html(md)
 
     # Other day tabs
+    base = SITE_BASE_PATH.rstrip("/")
     days = _discover_daily(week)
     day_tabs = '<div class="day-tabs">'
     for d in days:
         active = "active" if d["name"] == day["name"] else ""
         day_tabs += (
-            f'<a class="day-tab {active}" href="/{week["slug"]}/{d["name"]}.html">'
+            f'<a class="day-tab {active}" href="{base}/{week["slug"]}/{d["name"]}.html">'
             f'{d["label"]}</a>'
         )
     day_tabs += "</div>"
@@ -249,9 +254,9 @@ def _build_day_page(week: dict, day: dict) -> str:
     content = f"""
     <div class="week-header">
         <h1>{day['label']}'s Finetuning News</h1>
-        <div class="date-range">{week['label']} · {week['date_range']}</div>
+        <div class="date-range">{week['label']} \u00b7 {week['date_range']}</div>
         <div class="week-nav">
-            <a href="/{week['slug']}/index.html">← Back to Weekly Digest</a>
+            <a href="{base}/{week['slug']}/index.html">\u2190 Back to Weekly Digest</a>
         </div>
     </div>
     {day_tabs}
@@ -267,11 +272,12 @@ def _build_day_page(week: dict, day: dict) -> str:
 def _build_archive_page(weeks: list[dict]) -> str:
     """Build the archive listing page."""
     items = ""
+    base = SITE_BASE_PATH.rstrip("/")
     for w in weeks:
-        status = "📊 Digest available" if w["has_digest"] else "📝 In progress"
+        status = "\U0001f4ca Digest available" if w["has_digest"] else "\U0001f4dd In progress"
         daily_count = len(w["daily_files"])
         items += (
-            f'<li><a href="/{w["slug"]}/index.html">{w["label"]}: '
+            f'<li><a href="{base}/{w["slug"]}/index.html">{w["label"]}: '
             f'{w["date_range"]}</a>'
             f'<div class="date">{status} · {daily_count} daily summaries</div></li>'
         )
@@ -293,10 +299,11 @@ def _build_archive_page(weeks: list[dict]) -> str:
 
 def _build_rss(weeks: list[dict]) -> str:
     """Build an RSS 2.0 feed XML string."""
+    base = SITE_BASE_PATH.rstrip("/")
     rss = Element("rss", version="2.0")
     channel = SubElement(rss, "channel")
     SubElement(channel, "title").text = SITE_TITLE
-    SubElement(channel, "link").text = SITE_URL or "/"
+    SubElement(channel, "link").text = base or "/"
     SubElement(channel, "description").text = (
         "Weekly finetuning & post-training news for the Microsoft Foundry team."
     )
@@ -306,7 +313,7 @@ def _build_rss(weeks: list[dict]) -> str:
             continue
         item = SubElement(channel, "item")
         SubElement(item, "title").text = f"{w['label']}: {w['date_range']}"
-        link = f"{SITE_URL}/{w['slug']}/index.html" if SITE_URL else f"/{w['slug']}/index.html"
+        link = f"{base}/{w['slug']}/index.html"
         SubElement(item, "link").text = link
         SubElement(item, "guid").text = link
 

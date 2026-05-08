@@ -28,16 +28,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Generate weekly digest
+      - name: Load existing data into DB
+        run: python main.py migrate
+
+      - name: Ingest latest articles
+        run: python main.py ingest
+
+      - name: Run weekly pipeline (digest → build)
         env:
           AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
           AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
-        run: python main.py digest
-
-      - name: Build static site
-        run: python main.py build
+          SITE_BASE_PATH: /ft-news
+        run: python main.py weekly-pipeline
 
       - name: Commit digest
         run: |
