@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -192,6 +193,34 @@ def summarise_chunk(
 
 
 # ---------------------------------------------------------------------------
+# Parallel map
+# ---------------------------------------------------------------------------
+
+def _map_chunks_parallel(
+    chunks: list[list[dict]],
+    scope_prefix: str,
+    *,
+    prompt: str = _MAP_PROMPT,
+    kind: str = "daily_chunk",
+    max_workers: int = 3,
+) -> list[str]:
+    """Map step: summarise all chunks in parallel using threads."""
+    results: list[str | None] = [None] * len(chunks)
+
+    def _do_chunk(idx: int, chunk: list[dict]) -> tuple[int, str]:
+        return idx, summarise_chunk(chunk, idx, scope_prefix, prompt=prompt, kind=kind)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(_do_chunk, i, c): i for i, c in enumerate(chunks)}
+        for future in as_completed(futures):
+            idx, text = future.result()
+            results[idx] = text
+            logger.info("Chunk %d/%d done", idx + 1, len(chunks))
+
+    return [r for r in results if r]
+
+
+# ---------------------------------------------------------------------------
 # Reduce step
 # ---------------------------------------------------------------------------
 
@@ -245,14 +274,9 @@ def map_reduce_weekly(
     if not chunks:
         return f"# Weekly Finetuning Update — {year} Week {week}\n\nNo relevant articles this week.\n"
 
-    # --- Map ---
-    logger.info("Map step: %d chunks for %s", len(chunks), scope_prefix)
-    partials: list[str] = []
-    for idx, chunk in enumerate(chunks):
-        logger.info("Processing chunk %d/%d (%d articles)…", idx + 1, len(chunks), len(chunk))
-        text = summarise_chunk(chunk, idx, scope_prefix)
-        if text:
-            partials.append(text)
+    # --- Map (parallel) ---
+    logger.info("Map step: %d chunks for %s (parallel)", len(chunks), scope_prefix)
+    partials = _map_chunks_parallel(chunks, scope_prefix)
 
     if not partials:
         return f"# Weekly Finetuning Update — {year} Week {week}\n\nSummarisation produced no output.\n"
@@ -282,15 +306,11 @@ def map_reduce_daily(
     if not chunks:
         return f"# Daily Finetuning News — {date_str}\n\nNo relevant articles today.\n"
 
-    partials: list[str] = []
-    for idx, chunk in enumerate(chunks):
-        text = summarise_chunk(
-            chunk, idx, scope_prefix,
-            prompt=_DAILY_MAP_PROMPT,
-            kind="daily_chunk",
-        )
-        if text:
-            partials.append(text)
+    partials = _map_chunks_parallel(
+        chunks, scope_prefix,
+        prompt=_DAILY_MAP_PROMPT,
+        kind="daily_chunk",
+    )
 
     if not partials:
         return f"# Daily Finetuning News — {date_str}\n\nSummarisation produced no output.\n"

@@ -47,7 +47,10 @@ def _render(template_name: str, **kwargs: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _md_to_html(md: str) -> str:
-    """Convert digest markdown to HTML content (inner, no full page)."""
+    """Convert digest markdown to HTML content (inner, no full page).
+
+    Used for daily summaries.  Weekly digests use _digest_to_html().
+    """
     lines = md.strip().split("\n")
     html: list[str] = []
     in_list = False
@@ -112,6 +115,271 @@ def _md_to_html(md: str) -> str:
         html.append("</ul>")
 
     return "\n".join(html)
+
+
+# ---------------------------------------------------------------------------
+# Inline markdown helpers
+# ---------------------------------------------------------------------------
+
+def _inline_md(text: str) -> str:
+    """Convert inline markdown (links, bold, italic) to HTML."""
+    text = re.sub(
+        r"\[([^\]]+)\]\((https?://[^)]+)\)",
+        r'<a href="\2">\1</a>',
+        text,
+    )
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", text)
+    return text
+
+
+# ---------------------------------------------------------------------------
+# Digest-aware rich renderer (weekly digest pages only)
+# ---------------------------------------------------------------------------
+
+def _parse_digest_sections(md: str) -> list[dict]:
+    """Split weekly digest markdown into sections by ## headings."""
+    lines = md.strip().split("\n")
+    sections: list[dict] = []
+    current: dict = {"title": "", "id": "intro", "lines": []}
+
+    for line in lines:
+        s = line.strip()
+        if s.startswith("# ") and not s.startswith("## "):
+            continue  # skip main title
+        if s.startswith("## "):
+            if current["lines"] or current["title"]:
+                sections.append(current)
+            title = s[3:].strip()
+            sid = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+            current = {"title": title, "id": sid, "lines": []}
+        else:
+            current["lines"].append(line)
+
+    if current["lines"] or current["title"]:
+        sections.append(current)
+    return sections
+
+
+def _extract_tldr(sections: list[dict]) -> str:
+    """Extract TL;DR text from parsed sections."""
+    # Case 1: TL;DR as its own ## section
+    for s in sections:
+        if s["id"] == "tl-dr" or s["title"].upper().startswith("TL;DR"):
+            text = "\n".join(l.strip() for l in s["lines"] if l.strip())
+            return text
+
+    # Case 2: Bold **TL;DR** in intro section
+    intro = next((s for s in sections if s["id"] == "intro"), None)
+    if intro:
+        for line in intro["lines"]:
+            stripped = line.strip()
+            if "TL;DR" in stripped.upper():
+                return re.sub(r"^\*?\*?TL;DR\*?\*?\s*[—–\-:]*\s*", "", stripped, flags=re.IGNORECASE)
+    return ""
+
+
+def _extract_companies(sections: list[dict]) -> list[str]:
+    """Extract company names from 'By Company' section."""
+    companies: list[str] = []
+    by_company = next((s for s in sections if "company" in s["title"].lower()), None)
+    if not by_company:
+        return companies
+    for line in by_company["lines"]:
+        m = re.match(r"^\*\*(.+?)\*\*\s*$", line.strip())
+        if m:
+            companies.append(m.group(1))
+    return companies
+
+
+def _count_digest_stats(lines: list[str], sections: list[dict]) -> dict:
+    """Count items, companies, papers from the digest markdown."""
+    total_items = sum(1 for l in lines if l.strip().startswith("- "))
+    paper_sec = next((s for s in sections if "paper" in s["title"].lower()), None)
+    paper_count = 0
+    if paper_sec:
+        paper_count = sum(1 for l in paper_sec["lines"] if l.strip().startswith("- "))
+    companies = _extract_companies(sections)
+    return {"items": total_items, "companies": len(companies), "papers": paper_count}
+
+
+def _render_top_stories_html(lines: list[str]) -> str:
+    """Render Top Stories section as styled cards."""
+    cards: list[str] = []
+    for line in lines:
+        s = line.strip()
+        if not s.startswith("- "):
+            continue
+        bullet = s[2:]
+        # Try to extract a tag from **Bold**: rest
+        tag_html = ""
+        m = re.match(r"\*\*(.+?)\*\*\s*[:：]\s*(.*)", bullet)
+        if m:
+            tag_html = f'<span class="story-tag">{m.group(1)}</span>'
+            rest = m.group(2)
+        else:
+            rest = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", bullet)
+        rest_html = _inline_md(rest)
+        cards.append(
+            f'<div class="story-card">{tag_html}<p>{rest_html}</p></div>'
+        )
+    return "\n".join(cards)
+
+
+def _render_implications_html(lines: list[str]) -> str:
+    """Render 'What This Means for Us' section as amber callout items."""
+    items = [f"<li>{_inline_md(l.strip()[2:])}</li>" for l in lines if l.strip().startswith("- ")]
+    return "<ul>" + "\n".join(items) + "</ul>" if items else ""
+
+
+def _render_company_section_html(lines: list[str]) -> str:
+    """Render 'By Company' section with anchor IDs on each company heading."""
+    html_parts: list[str] = []
+    current_company = ""
+    current_items: list[str] = []
+
+    def _flush() -> None:
+        if current_company and current_items:
+            cid = re.sub(r"[^a-z0-9]+", "-", current_company.lower()).strip("-")
+            html_parts.append(f'<h3 class="section-anchor" id="{cid}">{current_company}</h3>')
+            html_parts.append("<ul>" + "\n".join(current_items) + "</ul>")
+
+    for line in lines:
+        s = line.strip()
+        if not s:
+            continue
+        m = re.match(r"^\*\*(.+?)\*\*\s*$", s)
+        if m:
+            _flush()
+            current_company = m.group(1)
+            current_items = []
+        elif s.startswith("- "):
+            current_items.append(f"<li>{_inline_md(s[2:])}</li>")
+
+    _flush()
+    return "\n".join(html_parts)
+
+
+def _render_generic_section_html(lines: list[str]) -> str:
+    """Render a section with sub-headings and bullet lists."""
+    html: list[str] = []
+    in_list = False
+    for line in lines:
+        s = line.strip()
+        if not s:
+            if in_list:
+                html.append("</ul>")
+                in_list = False
+            continue
+        m = re.match(r"^\*\*(.+?)\*\*\s*$", s)
+        if m:
+            if in_list:
+                html.append("</ul>")
+                in_list = False
+            html.append(f"<h3>{m.group(1)}</h3>")
+        elif s.startswith("- "):
+            if not in_list:
+                html.append("<ul>")
+                in_list = True
+            html.append(f"<li>{_inline_md(s[2:])}</li>")
+        else:
+            if in_list:
+                html.append("</ul>")
+                in_list = False
+            html.append(f"<p>{_inline_md(s)}</p>")
+    if in_list:
+        html.append("</ul>")
+    return "\n".join(html)
+
+
+def _digest_to_html(md: str) -> str:
+    """Convert weekly digest markdown to enhanced HTML with rich UX components.
+
+    Produces: stats bar, company tag bar, TOC, hero TL;DR,
+    top-stories cards, company sections with anchors,
+    and amber implications callout.
+    """
+    lines = md.strip().split("\n")
+    sections = _parse_digest_sections(md)
+    tldr_text = _extract_tldr(sections)
+    companies = _extract_companies(sections)
+    stats = _count_digest_stats(lines, sections)
+
+    parts: list[str] = []
+
+    # ── Stats bar ──
+    parts.append(
+        f'<div class="stats-bar">'
+        f'<div class="stat"><span class="stat-num">{stats["items"]}</span> items covered</div>'
+        f'<div class="stat"><span class="stat-num">{stats["companies"]}</span> companies</div>'
+        f'<div class="stat"><span class="stat-num">{stats["papers"]}</span> papers</div>'
+        f"</div>"
+    )
+
+    # ── Company tag bar ──
+    if companies:
+        pills = "".join(
+            f'<a class="company-pill" href="#{re.sub(r"[^a-z0-9]+", "-", c.lower()).strip("-")}">{c}</a>'
+            for c in companies
+        )
+        parts.append(f'<div class="company-bar">{pills}</div>')
+
+    # ── Table of contents ──
+    toc_entries: list[tuple[str, str]] = []
+    if tldr_text:
+        toc_entries.append(("tldr", "TL;DR"))
+    for s in sections:
+        if s["id"] not in ("intro", "tl-dr") and s["title"]:
+            toc_entries.append((s["id"], s["title"]))
+    if toc_entries:
+        links = '<span class="toc-sep">·</span>'.join(
+            f'<a href="#{tid}">{label}</a>' for tid, label in toc_entries
+        )
+        parts.append(f'<nav class="toc"><span class="toc-label">In This Issue</span>{links}</nav>')
+
+    # ── Hero TL;DR ──
+    if tldr_text:
+        parts.append(
+            f'<div class="hero-tldr" id="tldr"><div class="hero-icon">\U0001f4cc</div>'
+            f'<div class="hero-text"><div class="hero-label">TL;DR</div>'
+            f"<p>{_inline_md(tldr_text)}</p></div></div>"
+        )
+
+    # ── Content sections ──
+    for section in sections:
+        if section["id"] in ("intro", "tl-dr"):
+            continue
+        title = section["title"]
+        sid = section["id"]
+        slines = section["lines"]
+
+        if "top stories" in title.lower():
+            cards_html = _render_top_stories_html(slines)
+            parts.append(
+                f'<div class="section-anchor" id="{sid}">'
+                f'<h2>\U0001f525 Top Stories</h2>'
+                f'<div class="stories-grid">{cards_html}</div></div>'
+            )
+        elif "what this means" in title.lower():
+            items_html = _render_implications_html(slines)
+            parts.append(
+                f'<div class="implications section-anchor" id="{sid}">'
+                f'<h2>\U0001f4a1 {title}</h2>{items_html}</div>'
+            )
+        elif "company" in title.lower():
+            company_html = _render_company_section_html(slines)
+            parts.append(
+                f'<div class="card section-anchor" id="{sid}">'
+                f"<h2>{title}</h2>{company_html}</div>"
+            )
+        else:
+            content_html = _render_generic_section_html(slines)
+            parts.append(
+                f'<div class="card section-anchor" id="{sid}">'
+                f"<h2>{title}</h2>{content_html}</div>"
+            )
+
+    return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -212,11 +480,11 @@ def _build_week_page(week: dict, prev_week: dict | None, next_week: dict | None)
     # Digest content
     if week["has_digest"]:
         digest_md = week["digest_file"].read_text(encoding="utf-8")
-        digest_html = _md_to_html(digest_md)
+        digest_html = _digest_to_html(digest_md)
     else:
         digest_html = (
-            '<div class="tldr"><strong>No weekly digest yet.</strong> '
-            "Daily summaries are being collected. Check back on Monday.</div>"
+            '<div class="card"><div class="tldr"><strong>No weekly digest yet.</strong> '
+            "Daily summaries are being collected. Check back on Monday.</div></div>"
         )
 
     content = f"""
@@ -226,9 +494,7 @@ def _build_week_page(week: dict, prev_week: dict | None, next_week: dict | None)
         {nav_html}
     </div>
     {day_tabs}
-    <div class="card">
-        {digest_html}
-    </div>
+    {digest_html}
     """
 
     return _render("base.html", title=week["label"], page="home", content=content)
