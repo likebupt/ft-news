@@ -125,7 +125,14 @@ Merge them into ONE polished "Weekly Finetuning & Post-Training Update":
 3. **By Company** — remaining noteworthy items grouped by company. \
    One sentence sub-bullets with [Source](URL).
 4. **Notable Papers** — significant research only. [Paper](URL).
-5. **What This Means for Us** — 2-3 bullets on implications for Foundry Finetuning.
+5. **What This Means for Us** — 3-5 bullets on implications for Foundry Finetuning. \
+   MUST include BOTH types of insight: \
+   (a) Competitive intelligence — what competitor product moves, pricing changes, \
+       partnerships, or capability launches mean for our positioning (cite the \
+       company blog / announcement URL). \
+   (b) Technical opportunities — which research advances we should consider \
+       adopting or tracking (cite the paper URL). \
+   Lead with competitive insights before technical ones.
 
 Rules:
 - Be ruthlessly concise.  A busy PM should scan this in 5-10 minutes.
