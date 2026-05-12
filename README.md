@@ -2,32 +2,43 @@
 
 > Automated finetuning & post-training news aggregator for the Microsoft Foundry Finetuning team.
 
-This agent fetches daily news from official AI company blogs and research feeds, filters for finetuning/post-training relevance, summarizes them using Azure OpenAI, and delivers a polished weekly digest to Microsoft Teams every Monday at 9:00 AM PST.
+**Live site: [https://likebupt.github.io/ft-news/](https://likebupt.github.io/ft-news/)**
 
-## Architecture
+A zero-maintenance static website deployed on GitHub Pages that automatically collects, filters, and summarizes AI finetuning news from 20+ official sources every day, and produces a polished weekly digest every Monday.
+
+## How It Works
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  RSS Feeds  │────▶│   Fetcher    │────▶│  Summarizer  │────▶│  Publisher   │
-│  (20+ src)  │     │  + Filter    │     │  (Azure OAI) │     │  (Teams)     │
-└─────────────┘     └──────┬───────┘     └──────┬───────┘     └──────────────┘
-                           │                     │
-                    ┌──────▼───────┐     ┌───────▼──────┐
-                    │  daily-raw   │     │  daily .md   │
-                    │  .json       │     │  weekly .md  │
-                    └──────────────┘     └──────────────┘
+             ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+  20 RSS  ──▶│  Async       │────▶│  Map-Reduce  │────▶│  Static Site │
+  Feeds      │  Ingestion   │     │  Summarizer  │     │  Builder     │
+             │  (aiohttp)   │     │  (Azure AI)  │     │  (HTML/CSS)  │
+             └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
+                    │                    │                     │
+             ┌──────▼───────┐     ┌──────▼───────┐     ┌──────▼───────┐
+             │   SQLite DB  │     │  Cached      │     │   GitHub     │
+             │  (dedup,     │     │  Summaries   │     │   Pages      │
+             │   articles)  │     │  (DB + .md)  │     │   Deploy     │
+             └──────────────┘     └──────────────┘     └──────────────┘
 ```
 
-**Data Flow:**
+**Daily (01:00 UTC / 6 PM PST):** GitHub Actions → async RSS fetch → SQLite dedup → map-reduce LLM summary → build site → deploy to GitHub Pages
 
-1. **Daily (6 PM PST):** Fetcher pulls RSS feeds → filters by finetuning keywords → deduplicates → LLM summarizes → saves to `data/YYYY/week-NN/day.md`
-2. **Weekly (Mon 9 AM PST):** Digest generator reads all daily summaries → LLM creates weekly digest → Publisher sends Adaptive Card to Teams
+**Weekly (Mon 17:00 UTC / 9 AM PST):** GitHub Actions → ingest latest → map-reduce weekly digest → build site → deploy
+
+## Features
+
+- **Async ingestion** — 8 concurrent RSS feeds via aiohttp with retry and rate limiting
+- **Map-reduce summarization** — articles chunked (15/batch), summarized in parallel (3 threads), then merged into a final digest
+- **SQLite storage** — full dedup by URL, time-window queries, summary caching
+- **Rich weekly digest** — TL;DR hero card, Top Stories cards, company tag bar, table of contents, implications callout
+- **Zero maintenance** — runs entirely on GitHub Actions, deploys to GitHub Pages
 
 ## Monitored Sources
 
 | Category | Sources |
 |----------|---------|
-| **Big Tech** | OpenAI, Google AI, DeepMind, Meta AI, Microsoft Research, NVIDIA, Amazon Science, Apple ML |
+| **Big Tech** | OpenAI, Google AI, DeepMind, Meta AI, Microsoft Research, Microsoft AI Blog, NVIDIA, Amazon Science, Apple ML |
 | **AI Unicorns** | Anthropic, Mistral AI, Cohere, Together AI, xAI, Databricks |
 | **Open Source** | Hugging Face, Unsloth |
 | **Research** | arXiv cs.LG, arXiv cs.CL |
@@ -37,8 +48,8 @@ This agent fetches daily news from official AI company blogs and research feeds,
 ### 1. Clone & Install
 
 ```bash
-git clone <repo-url>
-cd ft-news-weekly
+git clone https://github.com/likebupt/ft-news.git
+cd ft-news
 pip install -r requirements.txt
 ```
 
@@ -49,101 +60,54 @@ cp .env.example .env
 # Edit .env with your values
 ```
 
-Required settings:
-
 | Variable | Description |
 |----------|-------------|
-| `AZURE_OPENAI_ENDPOINT` | Your Azure OpenAI resource endpoint |
-| `AZURE_OPENAI_API_KEY` | API key for Azure OpenAI |
-| `AZURE_OPENAI_DEPLOYMENT` | Deployment name (e.g., `gpt-4o`) |
-| `TEAMS_WEBHOOK_URL` | Teams Incoming Webhook URL |
+| `AZURE_OPENAI_ENDPOINT` | Azure AI Foundry endpoint (e.g. `https://your-resource.services.ai.azure.com/api/projects/your-project/openai/v1`) |
+| `AZURE_OPENAI_API_KEY` | API key |
+| `AZURE_OPENAI_DEPLOYMENT` | Deployment name (e.g. `gpt-5.4-pro`) |
+| `AZURE_OPENAI_API_VERSION` | API version (e.g. `2025-04-01-preview`) |
 
-### 3. Set Up Teams Webhook
+### 3. GitHub Actions Secrets
 
-1. Open your Teams channel
-2. Click **⋯** → **Connectors** (or **Manage channel** → **Connectors**)
-3. Find **Incoming Webhook** → **Configure**
-4. Name it "FT News Weekly", optionally add an icon
-5. Copy the webhook URL to your `.env` file
+Go to **Settings → Secrets and variables → Actions** and add the same 4 variables above.
 
-## Usage
-
-### CLI Commands
+## CLI Commands
 
 ```bash
-# Start the automated scheduler (daily fetch + weekly digest)
-python main.py run
+# ── Pipeline (recommended) ──
+python main.py pipeline          # Daily: ingest → summarize → build
+python main.py weekly-pipeline   # Weekly: digest → build
 
-# Manually fetch today's news + summarize
-python main.py fetch
-
-# Fetch only (no LLM summarization, for testing)
-python main.py fetch-only
-
-# Generate weekly digest for the previous week
-python main.py digest
-
-# Generate digest for a specific week (by reference date)
-python main.py digest --date 2026-04-20
-
-# Push the latest digest to Teams
-python main.py push
-
-# List all configured sources
-python main.py sources
+# ── Individual steps ──
+python main.py ingest            # Fetch all RSS feeds → SQLite
+python main.py migrate           # Import legacy JSON files into DB
+python main.py digest            # Generate weekly digest (map-reduce)
+python main.py digest --week 19  # Specific week
+python main.py digest --force    # Ignore cache, re-summarize
+python main.py daily             # Generate today's summary
+python main.py daily --date 2026-05-08
+python main.py db-stats          # Show DB statistics
+python main.py build             # Build static site from data/
+python main.py sources           # List all configured sources
 ```
-
-### Running as a Service
-
-For production, run the scheduler as a background service:
-
-**Option A: systemd (Linux)**
-```ini
-# /etc/systemd/system/ft-news-weekly.service
-[Unit]
-Description=FT News Weekly Agent
-After=network.target
-
-[Service]
-Type=simple
-User=your-user
-WorkingDirectory=/path/to/ft-news-weekly
-ExecStart=/path/to/python main.py run
-Restart=always
-RestartSec=60
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Option B: Task Scheduler (Windows)**
-1. Open Task Scheduler
-2. Create a new task
-3. Set trigger: Daily at your preferred time
-4. Set action: `python main.py fetch` (for daily) or `python main.py run` (for continuous)
-
-**Option C: Azure Container Instance / Azure Functions**
-Deploy as a containerized service for zero-maintenance operation.
 
 ## Data Structure
 
 ```
 data/
+├── ft_news.db          # SQLite (gitignored, rebuilt from JSON in CI)
 └── 2026/
-    └── week-16/
-        ├── monday-raw.json      # Raw fetched articles
-        ├── monday.md            # LLM-generated daily summary
-        ├── tuesday-raw.json
-        ├── tuesday.md
-        ├── ...
-        └── weekly-digest.md     # Weekly rollup (sent to Teams)
+    └── week-19/
+        ├── weekly-digest.md   # LLM-generated weekly digest
+        ├── friday.md          # Daily summary
+        └── friday-raw.json    # Raw article metadata
 ```
 
 ## Customization
 
-### Adding New Sources
+### Adding Sources
 
-Edit `sources.py` to add new RSS feeds:
+Edit `sources.py`:
 
 ```python
 NewsSource(
@@ -154,22 +118,22 @@ NewsSource(
 )
 ```
 
-### Adjusting Relevance Keywords
+### Tuning Relevance
 
-Edit `RELEVANCE_KEYWORDS` in `config.py` to tune what articles are considered relevant.
+Edit `RELEVANCE_KEYWORDS` in `config.py` to adjust which articles pass the filter.
 
-### Changing Summary Style
+### Adjusting Summary Style
 
-Edit the system prompts in `summarizer.py` (`_DAILY_SYSTEM_PROMPT` and `_WEEKLY_SYSTEM_PROMPT`) to adjust tone, format, or focus areas.
+Edit `_REDUCE_PROMPT` in `map_reduce.py` to change the weekly digest format, tone, or sections.
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| No articles found | Check if RSS feed URLs are accessible; run `python main.py fetch-only` to debug |
-| LLM errors | Verify Azure OpenAI credentials in `.env` |
-| Teams push fails | Check webhook URL; ensure it's not expired |
-| Duplicate articles | Delete `data/.seen_urls.json` to reset dedup tracking |
+| No articles found | Check RSS URLs; run `python main.py ingest` to debug |
+| LLM errors | Verify Azure OpenAI credentials; check endpoint uses Responses API path |
+| Cached stale digest | Run `python main.py digest --force` to regenerate |
+| GitHub Actions fails | Check Secrets are set; manually trigger workflow to test |
 
 ## License
 
