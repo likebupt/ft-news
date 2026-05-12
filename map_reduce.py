@@ -110,36 +110,74 @@ by COMPANY / ORGANISATION:
 """
 
 _REDUCE_PROMPT = """\
-You are an AI research analyst creating a weekly digest for the Microsoft \
-Foundry Finetuning product team.  You will receive several partial summaries \
-from different batches of articles from the same week.
+You are a senior technology analyst writing a weekly intelligence briefing \
+for the Microsoft Foundry Finetuning product team — a group of PMs who build \
+enterprise finetuning/post-training services on Azure.  Your readers are \
+busy PMs, NOT researchers.  They care about competitive positioning, market \
+trends, and actionable product insights.
 
-Merge them into ONE polished "Weekly Finetuning & Post-Training Update":
+You will receive several partial summaries from different batches of articles \
+from the same week.  Merge them into ONE polished digest with EXACTLY these \
+sections:
 
-1. **TL;DR** — 1-2 sentences that SYNTHESISE the week's overarching themes \
-   across ALL top stories and companies.  Mention the most important 2-3 themes \
-   (e.g. "competitive moves in pricing", "new RLHF methods", "safety hardening") \
-   rather than singling out one article or paper.  Think like an editor writing \
-   a newsletter subject line + one-liner for a busy PM.
-2. **Top Stories** — 3-5 most impactful items. One sentence each with [Read more](URL).
-3. **By Company** — remaining noteworthy items grouped by company. \
-   One sentence sub-bullets with [Source](URL).
-4. **Notable Papers** — significant research only. [Paper](URL).
-5. **What This Means for Us** — 3-5 bullets on implications for Foundry Finetuning. \
-   MUST include BOTH types of insight: \
-   (a) Competitive intelligence — what competitor product moves, pricing changes, \
-       partnerships, or capability launches mean for our positioning (cite the \
-       company blog / announcement URL). \
-   (b) Technical opportunities — which research advances we should consider \
-       adopting or tracking (cite the paper URL). \
-   Lead with competitive insights before technical ones.
+## TL;DR
+Write a 3-5 sentence executive summary that answers: "What happened this week \
+in finetuning that I absolutely must know?"  Cover the top 2-3 themes in depth — \
+e.g. a competitor launched a new capability, a pricing shift, a research \
+breakthrough that changes best practices.  Explain WHY each theme matters \
+for our business, not just WHAT happened.  Write like the opening paragraph \
+of a Bloomberg or The Information briefing — analytical, opinionated, and \
+specific.  Do NOT include links in TL;DR.
+
+## Top Stories
+Select 3-5 items that are MOST impactful to Microsoft's finetuning business. \
+Prioritise in this order: \
+(1) Direct competitor product launches or capability changes (OpenAI, Google, \
+    AWS, Anthropic, etc.) \
+(2) Major industry partnerships or market shifts \
+(3) Open-source releases that could disrupt paid offerings \
+(4) Breakthrough research with near-term product implications \
+Each item: one sentence on WHAT happened + one sentence on WHY it matters for us. \
+End with [Read more](URL).
+
+## By Company
+Group remaining noteworthy items by company.  Include competitors from ALL \
+regions — North America (OpenAI, Google, Anthropic, Meta, AWS/Amazon, \
+Databricks, Together AI, Cohere, xAI), Asia (Alibaba, Baidu, ByteDance, \
+DeepSeek, Zhipu AI, Kakao, Naver), and Europe (Mistral AI, Aleph Alpha, \
+AI21 Labs).  One sentence per item with [Source](URL).  Skip items already \
+covered in Top Stories.
+
+## Notable Papers
+Select AT MOST 10 papers that have the highest practical relevance for a \
+finetuning product team.  Prioritise papers that: \
+(a) introduce methods we could implement in our platform, \
+(b) reveal failure modes our customers might hit, or \
+(c) propose efficiency gains that reduce cost/time for tuning jobs. \
+Skip purely theoretical work.  Format: paper name (bold) + one sentence on \
+practical implication + [Paper](URL).
+
+## What This Means for Us
+This is the MOST IMPORTANT section.  Write 4-6 specific, actionable \
+recommendations for the Foundry Finetuning PM team.  Structure each bullet as: \
+"**[Action verb] [specific thing]** — [reasoning with evidence]." \
+MUST cover three categories in this order: \
+(a) **Competitive response** (1-2 bullets): What should we build, change, or \
+    accelerate in response to competitor moves this week? Cite the competitor \
+    announcement. \
+(b) **Product opportunity** (1-2 bullets): What new capability, workflow, or \
+    integration should we consider based on this week's trends? Cite sources. \
+(c) **Risk to monitor** (1-2 bullets): What emerging trend, open-source project, \
+    or research direction could disrupt our current approach if we ignore it? \
+    Cite sources.
 
 Rules:
-- Be ruthlessly concise.  A busy PM should scan this in 5-10 minutes.
-- Every bullet MUST end with a clickable markdown link.
+- Write for PMs, not researchers.  Use business language, not academic language.
+- Be opinionated and analytical — don't just summarise, interpret.
+- Every bullet (except TL;DR) MUST end with a clickable markdown link.
 - Do NOT repeat the same news across sections.
 - Skip tangentially relevant items.
-- Total: ~30-50 bullet points max.
+- Total length: ~40-60 bullet points max.
 """
 
 _DAILY_MAP_PROMPT = """\

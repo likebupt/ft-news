@@ -180,13 +180,33 @@ def _extract_tldr(sections: list[dict]) -> str:
 
 
 def _extract_companies(sections: list[dict]) -> list[str]:
-    """Extract company names from 'By Company' section."""
+    """Extract company names from 'By Company' section.
+
+    Handles multiple markdown formats:
+    - **Company** (standalone bold line)
+    - ### Company (sub-heading)
+    - - **Company** — description (bold at start of bullet)
+    Skips regional headers like ### North America.
+    """
+    _REGION_NAMES = {"north america", "asia", "europe", "latin america", "middle east"}
     companies: list[str] = []
     by_company = next((s for s in sections if "company" in s["title"].lower()), None)
     if not by_company:
         return companies
     for line in by_company["lines"]:
-        m = re.match(r"^\*\*(.+?)\*\*\s*$", line.strip())
+        s = line.strip()
+        # Format: **Company** (standalone)
+        m = re.match(r"^\*\*(.+?)\*\*\s*$", s)
+        if m:
+            companies.append(m.group(1))
+            continue
+        # Format: ### Company (heading)
+        m = re.match(r"^###\s+(.+)$", s)
+        if m and m.group(1).strip().lower() not in _REGION_NAMES:
+            companies.append(m.group(1).strip())
+            continue
+        # Format: - **Company** — description
+        m = re.match(r"^-\s+\*\*(.+?)\*\*\s*[—–\-:]", s)
         if m:
             companies.append(m.group(1))
     return companies
@@ -233,27 +253,47 @@ def _render_implications_html(lines: list[str]) -> str:
 
 
 def _render_company_section_html(lines: list[str]) -> str:
-    """Render 'By Company' section with anchor IDs on each company heading."""
+    """Render 'By Company' section with anchor IDs on each company heading.
+
+    Handles:
+    - **Company** (standalone) → h3 heading
+    - ### Region or ### Company → h3 heading (regions get a different style)
+    - - **Company** — desc → individual company card
+    - - bullet → list item under current heading
+    """
+    _REGION_NAMES = {"north america", "asia", "europe", "latin america", "middle east"}
     html_parts: list[str] = []
-    current_company = ""
+    current_heading = ""
     current_items: list[str] = []
 
     def _flush() -> None:
-        if current_company and current_items:
-            cid = re.sub(r"[^a-z0-9]+", "-", current_company.lower()).strip("-")
-            html_parts.append(f'<h3 class="section-anchor" id="{cid}">{current_company}</h3>')
+        if current_heading and current_items:
+            cid = re.sub(r"[^a-z0-9]+", "-", current_heading.lower()).strip("-")
+            html_parts.append(f'<h3 class="section-anchor" id="{cid}">{current_heading}</h3>')
+            html_parts.append("<ul>" + "\n".join(current_items) + "</ul>")
+        elif current_items:  # items without heading
             html_parts.append("<ul>" + "\n".join(current_items) + "</ul>")
 
     for line in lines:
         s = line.strip()
         if not s:
             continue
+        # ### Heading
+        m = re.match(r"^###\s+(.+)$", s)
+        if m:
+            _flush()
+            current_heading = m.group(1).strip()
+            current_items = []
+            continue
+        # **Company** standalone
         m = re.match(r"^\*\*(.+?)\*\*\s*$", s)
         if m:
             _flush()
-            current_company = m.group(1)
+            current_heading = m.group(1)
             current_items = []
-        elif s.startswith("- "):
+            continue
+        # Bullet item (including - **Company** — desc format)
+        if s.startswith("- "):
             current_items.append(f"<li>{_inline_md(s[2:])}</li>")
 
     _flush()

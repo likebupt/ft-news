@@ -1,54 +1,55 @@
-# Weekly Finetuning & Post-Training Update
+## TL;DR
 
-**TL;DR** — The week’s clearest signal was a shift from static one-shot tuning toward adaptive, production-aware post-training: dynamic data weighting, optimizer/replay choices, explicit tool/agent supervision, and safety-preserving update methods all advanced meaningfully. [Read more](https://arxiv.org/abs/2605.05227)
+This week sharpened two product truths: post-training is becoming inseparable from runtime instrumentation, and long-context finetuning is only valuable if the serving stack can actually carry it. OpenAI’s Codex safety design shows that agent traces, approval events, and policy interventions are turning into high-value post-training data, while Together AI’s DeepSeek-V4 deployment makes clear that long-context tuning fails commercially if inference cost, cache behavior, and latency are not designed in from day one. The strongest research signal is a shift away from brute-force retraining toward smarter updates—especially continual low-rank adaptation, dynamic data weighting, and better adapter targeting—which is exactly where enterprise buyers will expect lower cost and less forgetting. Net: Foundry should think less like a job runner and more like an end-to-end post-training control plane spanning data, tuning, eval, and deployment.
 
 ## Top Stories
-- **OpenAI / Codex ops**: OpenAI said Codex is run with sandboxing, approval gates, network controls, and agent-native telemetry—exactly the kind of traces that can become high-value data for future safety tuning and reward modeling of coding agents. [Read more](https://openai.com/index/running-codex-safely)
-- **Online data reweighting**: Training-coupled online reweighting beat offline data selection/mixing under shifts, making dynamic curation one of the most actionable ideas for SFT and continual post-training. [Read more](https://arxiv.org/abs/2605.05227)
-- **Optimizer-model consistency**: Matching the pretraining optimizer during full finetuning reduced forgetting while matching or improving downstream quality, suggesting current FT defaults may be leaving capability on the table. [Read more](https://arxiv.org/abs/2605.06654)
-- **RVPO for multi-objective RLHF**: RVPO adds variance regularization so gains on one reward cannot hide failures on safety, formatting, or other bottleneck objectives—a common alignment failure mode. [Read more](https://arxiv.org/abs/2605.05750)
-- **Tool-integrated reasoning**: A new recipe showed that simply exposing tools can hurt performance unless models are explicitly trained when and how to use them. [Read more](https://arxiv.org/abs/2605.06326)
+
+- **OpenAI turns Codex operations into a safety-and-training loop** — OpenAI detailed Codex’s production controls, including sandboxed execution, approval gates, network restrictions, and agent-native telemetry. For Foundry, the important shift is that runtime artifacts—tool traces, human approvals, and policy hits—are becoming premium post-training data, so our product needs native collection and replay of agent traces, not just model checkpoints. [Read more](https://openai.com/index/running-codex-safely)
+
+- **Together AI makes the long-context bottleneck explicit** — Together AI said serving DeepSeek-V4 at million-token context required compressed KV-cache layouts, prefix caching, and hardware-specific kernel optimization on HGX B200. That matters because long-context finetuning is only sellable if deployment economics work on Azure afterward; otherwise we help customers create models they cannot afford to run. [Read more](https://www.together.ai/blog/serving-deepseek-v4-why-million-token-context-is-an-inference-systems-problem)
+
+- **CRAFFT points to a more enterprise-friendly continual tuning path** — Researchers introduced CRAFT, which adds new capabilities through routed low-rank interventions on hidden representations instead of repeatedly rewriting base weights. This is highly relevant for Foundry because enterprise customers usually need recurring policy, domain, and seasonal updates, and “tune again without forgetting” is a more compelling product promise than repeated full retrains. [Read more](https://arxiv.org/abs/2605.05732)
 
 ## By Company
 
-**Amazon**
-- Amazon argued responsible AI should span data, tuning, evaluation, and red-teaming as one lifecycle rather than a last-step safety patch, reinforcing integrated post-training stacks. [Source](https://www.amazon.science/blog/building-trust-into-ai)
+### North America
 
-**Together AI**
-- Together AI showed that million-token context serving is primarily an inference-systems problem—KV-cache compression, prefix caching, and hardware-aware kernels now gate the value of long-context post-training. [Source](https://www.together.ai/blog/serving-deepseek-v4-why-million-token-context-is-an-inference-systems-problem)
+- **Amazon** — Amazon framed responsible AI as an end-to-end lifecycle spanning instruction tuning, safety tuning, evaluation, and red-teaming, reinforcing that enterprise buyers increasingly expect governance to be built into post-training rather than bolted on after deployment. [Source](https://www.amazon.science/blog/building-trust-into-ai)
 
-**Zyphra / AMD**
-- Zyphra’s ZAYA1-8B report suggests strong reasoning post-training is feasible with a small-active-parameter MoE on AMD infrastructure, widening hardware and cost options. [Source](https://arxiv.org/abs/2605.05365)
+- **Zyphra / AMD** — Zyphra’s ZAYA1-8B report describes a reasoning-focused MoE with just 700M active parameters trained across pretraining, midtraining, and SFT on an AMD full-stack platform, signaling that capable reasoning post-training may become cheaper and less tied to NVIDIA-centric assumptions. [Source](https://arxiv.org/abs/2605.05365)
 
 ## Notable Papers
 
-**RL / Post-training**
-- **Reset Replay** reduces primacy bias in long RL/preference optimization runs and improves sample efficiency. [Paper](https://arxiv.org/abs/2508.06412)
-- **P²O** jointly optimizes prompts and policy in RLVR, recovering learning signal on hard samples where all rollouts initially fail. [Paper](https://arxiv.org/abs/2603.21877)
-- **Tsallis Loss Continuum** offers a unified view of SFT and RLVR, helping explain why SFT→RLVR curricula work well. [Paper](https://arxiv.org/abs/2604.25907)
-- **Near-Policy Distillation** approximates on-policy distillation with asynchronous generation and selective packing, lowering the cost of student-model post-training. [Paper](https://arxiv.org/abs/2605.05940)
-- **Unified Pair-GRPO** unifies pairwise GRPO variants to lower gradient variance and improve controllability in preference optimization. [Paper](https://arxiv.org/abs/2605.06375)
-- **Positive-only Policy Optimization** learns from successful verifiable-reward rollouts without explicitly collecting failures, simplifying RLVR data generation. [Paper](https://arxiv.org/abs/2605.06650)
-- **Optimal-transport Reward Modeling** makes reward models more robust to noisy preference labels, a common RLHF failure point. [Paper](https://arxiv.org/abs/2605.06036)
-- **Rubric-based Self-play** bootstraps synthetic post-training signals from pretraining text for open-ended tasks, reducing dependence on human labels. [Paper](https://arxiv.org/abs/2604.20051)
-- **OPSD after RLVR** argues reasoning capability should be built with RLVR first and compacted afterward, supporting a two-stage capability-then-efficiency stack. [Paper](https://arxiv.org/abs/2605.06188)
-- **Correct Is Not Enough** proposes executor-grounded rewards so planning models are trained on faithful reasoning, not lucky correct answers. [Paper](https://arxiv.org/abs/2605.03862)
+- **Online data curation via reweighting** — Dynamic example weighting during training could outperform repeated offline dataset filtering, making it a strong candidate for an “auto-curate” feature in SFT and continual tuning workflows. [Paper](https://arxiv.org/abs/2605.05227)
 
-**Continual tuning / PEFT / composition**
-- **CRAFT** adds routed low-rank interventions instead of updating base weights, offering PEFT-style continual adaptation with less forgetting. [Paper](https://arxiv.org/abs/2605.05732)
-- **Adapter Placement** shows a few well-placed LoRA adapters can outperform broad placement at lower trainable-parameter budgets. [Paper](https://arxiv.org/abs/2605.06183)
-- **Attribution-guided Continual Learning** uses attribution signals to decide what to update, aiming to reduce forgetting across sequential finetunes. [Paper](https://arxiv.org/abs/2605.05285)
-- **Fréchet Averages for Model Merging** argues symmetry-aware merge operators beat naive parameter averaging when combining specialized checkpoints. [Paper](https://arxiv.org/abs/2604.27155)
+- **Near-Policy Distillation** — Asynchronous generation plus selective packing suggests a cheaper path to near on-policy distillation, which could reduce the cost of student-model post-training and compaction. [Paper](https://arxiv.org/abs/2605.05940)
 
-**Safety / agents / evaluation**
-- **Safety Anchor** uses geometric bottlenecks to resist harmful finetuning, targeting safety removal via persistent or adversarial updates. [Paper](https://arxiv.org/abs/2605.05995)
-- **StraTA** abstracts long agent trajectories into higher-level units to improve exploration and credit assignment in agent RL. [Paper](https://arxiv.org/abs/2605.06642)
-- **When2Speak** adds supervision for turn-taking timing, a missing post-training signal for meetings, group chat, and multi-agent settings. [Paper](https://arxiv.org/abs/2605.05626)
-- **One Turn Too Late** defends against multi-turn attacks that hide malicious intent across dialogue history, highlighting the need for trajectory-level safety training. [Paper](https://arxiv.org/abs/2605.05630)
-- **Evaluation-context Divergence** shows benchmark-like prompts can elicit materially different behavior than deployment-like prompts, challenging current eval assumptions. [Paper](https://arxiv.org/abs/2605.06327)
-- **Prompt-space Perturbation for GRPO** broadens reasoning exploration with lightweight prompt perturbations, helping with zero-advantage failures. [Paper](https://arxiv.org/abs/2605.05566)
+- **Optimizer-model consistency** — Matching the finetuning optimizer to the one used in pretraining appears to reduce forgetting while maintaining downstream quality, which is a practical default change for full-model SFT jobs. [Paper](https://arxiv.org/abs/2605.06654)
+
+- **Adapter placement in dominant modules** — This work argues LoRA quality depends heavily on targeting a small set of dominant modules rather than spreading adapters broadly, opening the door to lower-cost PEFT with smarter defaults. [Paper](https://arxiv.org/abs/2605.06183)
+
+- **RVPO for risk-sensitive RLHF** — Variance-regularized preference optimization looks useful for enterprise multi-objective tuning, where gains on helpfulness cannot be allowed to mask regressions on safety, formatting, or policy compliance. [Paper](https://arxiv.org/abs/2605.05750)
+
+- **Reward modeling from noisy preferences** — Optimal-transport-based reward modeling could make RLHF pipelines more robust to imperfect preference labels, which is especially relevant for enterprise annotation programs with mixed-quality raters. [Paper](https://arxiv.org/abs/2605.06036)
+
+- **Tool-integrated reasoning** — The paper shows that simply turning tools on can hurt quality unless models are explicitly trained when and how to use them, implying Foundry should treat tool-use tuning as a first-class workflow rather than a prompt-layer add-on. [Paper](https://arxiv.org/abs/2605.06326)
+
+- **One Turn Too Late** — Multi-turn hidden-intent attacks require response-aware defenses, a reminder that post-training safety evals based only on single prompts will miss realistic enterprise dialogue risks. [Paper](https://arxiv.org/abs/2605.05630)
+
+- **Safety Anchor** — Geometric bottlenecks for defending against harmful finetuning suggest a promising way to preserve alignment when customers perform downstream customization on top of already-safe models. [Paper](https://arxiv.org/abs/2605.05995)
+
+- **Evaluation-context divergence** — Models can behave differently when prompts “look like” benchmarks, which means benchmark-style post-training wins may not transfer cleanly to production prompts unless eval design changes. [Paper](https://arxiv.org/abs/2605.06327)
 
 ## What This Means for Us
-- **Expose adaptive-training knobs**: Foundry Finetuning should make optimizer presets, replay/weighting strategies, and curriculum controls easier to configure, since multiple papers point to gains without changing the base model. [Context](https://arxiv.org/abs/2605.06654)
-- **Make agent/tool traces first-class**: tool calls, approvals, sandbox outcomes, and dialogue state increasingly look like core training/eval assets rather than observability exhaust. [Context](https://arxiv.org/abs/2605.06326)
-- **Invest in safe continual-tuning workflows**: better PEFT placement/merging plus protections against safety stripping and forgetting could become a strong enterprise differentiator. [Context](https://arxiv.org/abs/2605.05995)
+
+- **Build first-class agent-trace ingestion for post-training** — OpenAI’s Codex design makes clear that approvals, tool traces, sandbox outcomes, and policy violations are becoming the highest-value data for the next tuning cycle; Foundry should ship native schemas, storage, and replay paths so customers can turn agent operations directly into SFT, reward-model, and safety-tuning datasets. [Read more](https://openai.com/index/running-codex-safely)
+
+- **Bundle long-context tuning with deployment-feasibility checks** — Together AI’s DeepSeek-V4 write-up shows that million-token capability is as much an inference-systems problem as a model problem, so Foundry should gate long-context jobs with Azure deployment sizing, KV-cache-aware evals, and projected cost/latency outputs before customers commit spend. [Read more](https://www.together.ai/blog/serving-deepseek-v4-why-million-token-context-is-an-inference-systems-problem)
+
+- **Add a “continual tuning” mode for recurring enterprise updates** — CRAFT and attribution-guided continual learning both point to a clear product opportunity: customers need monthly domain and policy refreshes without catastrophic forgetting, and a PEFT-first sequential update workflow would be easier to operationalize than repeated full retrains. [CRAFT](https://arxiv.org/abs/2605.05732), [Attribution-guided continual learning](https://arxiv.org/abs/2605.05285)
+
+- **Offer automatic data-weighting and LoRA-target optimization** — Online reweighting and dominant-module adapter placement both suggest better quality-per-dollar comes from choosing the right examples and modules, not just running more epochs, which makes this a strong candidate for an “optimization layer” inside Foundry tuning jobs. [Data reweighting](https://arxiv.org/abs/2605.05227), [Adapter placement](https://arxiv.org/abs/2605.06183)
+
+- **Monitor cost pressure from small-active MoEs on non-NVIDIA stacks** — Zyphra’s AMD-based reasoning model is a warning that capable post-training may get cheaper and more hardware-flexible than many enterprise buyers assume, which could compress margins on premium finetuning offers unless Azure leads on transparent cost/performance positioning. [Source](https://arxiv.org/abs/2605.05365)
+
+- **Harden post-tune safety and evals around real deployment failure modes** — Safety Anchor, One Turn Too Late, and evaluation-context divergence all point to the same risk: downstream finetuning can quietly erode alignment, miss multi-turn attacks, or overfit benchmark-style prompts, so every Foundry workflow should include post-tune regression suites for policy retention, multi-turn safety, and production-like prompt distributions. [Safety Anchor](https://arxiv.org/abs/2605.05995), [One Turn Too Late](https://arxiv.org/abs/2605.05630), [Evaluation-context divergence](https://arxiv.org/abs/2605.06327)
