@@ -662,8 +662,9 @@ def build_site() -> Path:
         logger.info("Built placeholder site (no data yet)")
         return SITE_DIR
 
-    # Homepage = latest week
-    latest = weeks[0]
+    # Homepage = latest week WITH a digest (skip in-progress weeks)
+    latest = next((w for w in weeks if w["has_digest"]), weeks[0])
+    latest_idx = weeks.index(latest)
 
     for i, week in enumerate(weeks):
         prev_week = weeks[i - 1] if i > 0 else None
@@ -681,8 +682,10 @@ def build_site() -> Path:
             day_html = _build_day_page(week, day)
             (week_out / f"{day['name']}.html").write_text(day_html, encoding="utf-8")
 
-    # Homepage redirect to latest week
-    index_html = _build_week_page(latest, None, weeks[1] if len(weeks) > 1 else None)
+    # Homepage = latest week with digest
+    prev_for_home = weeks[latest_idx - 1] if latest_idx > 0 else None
+    next_for_home = weeks[latest_idx + 1] if latest_idx < len(weeks) - 1 else None
+    index_html = _build_week_page(latest, prev_for_home, next_for_home)
     (SITE_DIR / "index.html").write_text(index_html, encoding="utf-8")
 
     # Archive page
