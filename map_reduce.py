@@ -89,6 +89,16 @@ def _call_llm(instructions: str, user_input: str, max_tokens: int = 8192) -> str
                 time.sleep(2.0 * attempt)
             else:
                 raise
+        except httpx.RequestError as exc:
+            elapsed = time.monotonic() - t0
+            logger.warning(
+                "LLM request error attempt %d (%.1fs): %s",
+                attempt, elapsed, exc,
+            )
+            if attempt < _MAX_RETRIES:
+                time.sleep(2.0 * attempt)
+            else:
+                raise
 
     return ""
 
