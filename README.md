@@ -29,7 +29,7 @@ A zero-maintenance static website deployed on GitHub Pages that automatically co
 ## Features
 
 - **Async ingestion** — 8 concurrent RSS feeds via aiohttp with retry and rate limiting
-- **Map-reduce summarization** — articles chunked (10/batch), summarized in parallel (2 threads), then merged into a final digest
+- **Map-reduce summarization** — articles chunked (10/batch), summarized in parallel (2 workers), then merged into a final digest
 - **SQLite storage** — full dedup by URL, time-window queries, summary caching
 - **Rich weekly digest** — TL;DR hero card, Top Stories cards, company tag bar, table of contents, implications callout
 - **Zero maintenance** — runs entirely on GitHub Actions, deploys to GitHub Pages
