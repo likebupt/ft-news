@@ -23,7 +23,7 @@ def weekly_digest(
     *,
     force: bool = False,
     max_articles: int = 200,
-    chunk_size: int = 15,
+    chunk_size: int = 10,
 ) -> str:
     """Generate (or retrieve cached) weekly digest.
 
@@ -90,7 +90,7 @@ def daily_digest(
     *,
     force: bool = False,
     max_articles: int = 100,
-    chunk_size: int = 15,
+    chunk_size: int = 10,
 ) -> str:
     """Generate (or retrieve cached) daily digest.
 
