@@ -92,7 +92,7 @@ def db_stats() -> None:
 @click.option("--year", default=None, type=int, help="ISO year (default: current)")
 @click.option("--force", is_flag=True, help="Ignore cache and re-summarise")
 @click.option("--max-articles", default=200, type=int, help="Max articles for summarisation")
-@click.option("--chunk-size", default=15, type=int, help="Articles per map chunk")
+@click.option("--chunk-size", default=10, type=int, help="Articles per map chunk")
 def digest(week: int | None, year: int | None, force: bool, max_articles: int, chunk_size: int) -> None:
     """Generate the weekly digest using map-reduce summarisation."""
     from query import weekly_digest
@@ -147,13 +147,16 @@ def pipeline() -> None:
 
 
 @cli.command("weekly-pipeline")
-def weekly_pipeline() -> None:
+@click.option("--week", default=None, type=int, help="ISO week number (default: previous week)")
+@click.option("--year", default=None, type=int, help="ISO year (default: current)")
+@click.option("--force", is_flag=True, help="Ignore cache and re-summarise")
+def weekly_pipeline(week: int | None, year: int | None, force: bool) -> None:
     """Run the full weekly pipeline: digest → build site."""
     from query import weekly_digest
     from site_builder import build_site
 
     click.echo("[1/2] Generating weekly digest (map-reduce)...")
-    text = weekly_digest()
+    text = weekly_digest(year=year, week=week, force=force)
     click.echo(f"  → {len(text)} chars generated")
 
     click.echo("[2/2] Building site...")

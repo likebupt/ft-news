@@ -6,6 +6,20 @@ on:
   schedule:
     - cron: "0 17 * * 1"  # 17:00 UTC Monday = 9:00 AM PST
   workflow_dispatch:       # Allow manual trigger from GitHub UI
+    inputs:
+      year:
+        description: "ISO year to generate, e.g. 2026. Empty means previous week."
+        required: false
+        type: number
+      week:
+        description: "ISO week number to generate, e.g. 22. Empty means previous week."
+        required: false
+        type: number
+      force:
+        description: "Ignore cached summaries and regenerate."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -41,7 +55,21 @@ jobs:
           AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
           AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
           SITE_BASE_PATH: /ft-news
-        run: python main.py weekly-pipeline
+          BACKFILL_YEAR: ${{ github.event.inputs.year }}
+          BACKFILL_WEEK: ${{ github.event.inputs.week }}
+          FORCE_REGENERATE: ${{ github.event.inputs.force }}
+        run: |
+          args=()
+          if [ -n "$BACKFILL_YEAR" ]; then
+            args+=("--year" "$BACKFILL_YEAR")
+          fi
+          if [ -n "$BACKFILL_WEEK" ]; then
+            args+=("--week" "$BACKFILL_WEEK")
+          fi
+          if [ "$FORCE_REGENERATE" = "true" ]; then
+            args+=("--force")
+          fi
+          python main.py weekly-pipeline "${args[@]}"
 
       - name: Commit digest
         run: |
@@ -52,7 +80,7 @@ jobs:
           git push
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -65,4 +93,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
