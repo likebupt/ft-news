@@ -34,6 +34,11 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(connect=30.0, read=600.0, write=30.0, pool=30.0)
 _MAX_RETRIES = 2
+_MAP_MAX_TOKENS = 2048
+_DAILY_REDUCE_MAX_TOKENS = 2048
+_WEEKLY_REDUCE_MAX_TOKENS = 4096
+_MAP_MAX_WORKERS = 2
+_ARTICLE_EXCERPT_CHARS = 250
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +90,16 @@ def _call_llm(instructions: str, user_input: str, max_tokens: int = 8192) -> str
         except httpx.TimeoutException:
             elapsed = time.monotonic() - t0
             logger.warning("LLM timeout attempt %d (%.1fs)", attempt, elapsed)
+            if attempt < _MAX_RETRIES:
+                time.sleep(2.0 * attempt)
+            else:
+                raise
+        except httpx.RequestError as exc:
+            elapsed = time.monotonic() - t0
+            logger.warning(
+                "LLM request error attempt %d (%.1fs): %s",
+                attempt, elapsed, exc,
+            )
             if attempt < _MAX_RETRIES:
                 time.sleep(2.0 * attempt)
             else:
@@ -203,7 +218,7 @@ def _format_chunk(articles: list[dict]) -> str:
         lines.append(f"Title: {a.get('title', '')}")
         lines.append(f"URL: {a.get('url', '')}")
         lines.append(f"Published: {a.get('published', '')}")
-        excerpt = a.get("summary", "")[:400]
+        excerpt = a.get("summary", "")[:_ARTICLE_EXCERPT_CHARS]
         lines.append(f"Excerpt: {excerpt}")
         lines.append("")
     return "\n".join(lines)
@@ -234,7 +249,7 @@ def summarise_chunk(
         + _format_chunk(chunk)
     )
 
-    text = _call_llm(prompt, user_input)
+    text = _call_llm(prompt, user_input, max_tokens=_MAP_MAX_TOKENS)
     if text:
         article_ids = [a.get("id") for a in chunk if a.get("id")]
         save_summary(kind, scope_key, text, article_ids)
@@ -251,7 +266,7 @@ def _map_chunks_parallel(
     *,
     prompt: str = _MAP_PROMPT,
     kind: str = "daily_chunk",
-    max_workers: int = 3,
+    max_workers: int = _MAP_MAX_WORKERS,
 ) -> list[str]:
     """Map step: summarise all chunks in parallel using threads."""
     results: list[str | None] = [None] * len(chunks)
@@ -279,6 +294,7 @@ def merge_summaries(
     *,
     prompt: str = _REDUCE_PROMPT,
     kind: str = "weekly",
+    max_tokens: int = _WEEKLY_REDUCE_MAX_TOKENS,
 ) -> str:
     """Merge partial summaries into a final digest. Uses DB cache."""
     cached = get_summary(kind, scope_key)
@@ -297,7 +313,7 @@ def merge_summaries(
         f"Please merge into the final weekly digest.\n\n{combined}"
     )
 
-    text = _call_llm(prompt, user_input, max_tokens=16384)
+    text = _call_llm(prompt, user_input, max_tokens=max_tokens)
     if text:
         save_summary(kind, scope_key, text)
     return text
@@ -331,8 +347,11 @@ def map_reduce_weekly(
         return f"# Weekly Finetuning Update — {year} Week {week}\n\nSummarisation produced no output.\n"
 
     # --- Reduce ---
-    logger.info("Reduce step: merging %d partial summaries…", len(partials))
-    digest = merge_summaries(partials, scope_prefix)
+    if len(partials) == 1:
+        digest = partials[0]
+    else:
+        logger.info("Reduce step: merging %d partial summaries…", len(partials))
+        digest = merge_summaries(partials, scope_prefix)
 
     # --- Persist as markdown file (for site builder compatibility) ---
     if digest:
@@ -374,7 +393,11 @@ def map_reduce_daily(
             "Add Key Takeaways at the end."
         )
         digest = merge_summaries(
-            partials, scope_prefix, prompt=daily_reduce, kind="daily_merged"
+            partials,
+            scope_prefix,
+            prompt=daily_reduce,
+            kind="daily_merged",
+            max_tokens=_DAILY_REDUCE_MAX_TOKENS,
         )
 
     # Persist
