@@ -34,9 +34,9 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(connect=30.0, read=600.0, write=30.0, pool=30.0)
 _MAX_RETRIES = 2
-_MAP_MAX_TOKENS = 3072
-_DAILY_REDUCE_MAX_TOKENS = 3072
-_WEEKLY_REDUCE_MAX_TOKENS = 6144
+_MAP_MAX_TOKENS = 2048
+_DAILY_REDUCE_MAX_TOKENS = 2048
+_WEEKLY_REDUCE_MAX_TOKENS = 4096
 _MAP_MAX_WORKERS = 2
 
 
@@ -217,7 +217,7 @@ def _format_chunk(articles: list[dict]) -> str:
         lines.append(f"Title: {a.get('title', '')}")
         lines.append(f"URL: {a.get('url', '')}")
         lines.append(f"Published: {a.get('published', '')}")
-        excerpt = a.get("summary", "")[:400]
+        excerpt = a.get("summary", "")[:250]
         lines.append(f"Excerpt: {excerpt}")
         lines.append("")
     return "\n".join(lines)
@@ -355,8 +355,11 @@ def map_reduce_weekly(
         return f"# Weekly Finetuning Update — {year} Week {week}\n\nSummarisation produced no output.\n"
 
     # --- Reduce ---
-    logger.info("Reduce step: merging %d partial summaries…", len(partials))
-    digest = merge_summaries(partials, scope_prefix, max_tokens=_WEEKLY_REDUCE_MAX_TOKENS)
+    if len(partials) == 1:
+        digest = partials[0]
+    else:
+        logger.info("Reduce step: merging %d partial summaries…", len(partials))
+        digest = merge_summaries(partials, scope_prefix, max_tokens=_WEEKLY_REDUCE_MAX_TOKENS)
 
     # --- Persist as markdown file (for site builder compatibility) ---
     if digest:
