@@ -1,0 +1,2 @@
+**Hugging Face**
+- Hugging Face published a comparison of LoRA with other parameter-efficient fine-tuning (PEFT) methods, asking whether newer approaches can beat the current default on quality and efficiency. This matters for finetuning because it pushes teams to benchmark adapter choices instead of defaulting to LoRA, especially when optimizing for memory, speed, or task-specific performance. [Read more](https://huggingface.co/blog/peft-beyond-lora)
