@@ -8,7 +8,7 @@ A zero-maintenance static website deployed on GitHub Pages that automatically co
 
 ## How It Works
 
-```
+```text
              ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
   20 RSS  ──▶│  Async       │────▶│  Map-Reduce  │────▶│  Static Site │
   Feeds      │  Ingestion   │     │  Summarizer  │     │  Builder     │
@@ -37,7 +37,7 @@ A zero-maintenance static website deployed on GitHub Pages that automatically co
 ## Monitored Sources
 
 | Category | Sources |
-|----------|---------|
+| ---------- | --------- |
 | **Big Tech** | OpenAI, Google AI, DeepMind, Meta AI, Microsoft Research, Microsoft AI Blog, NVIDIA, Amazon Science, Apple ML |
 | **AI Unicorns** | Anthropic, Mistral AI, Cohere, Together AI, xAI, Databricks |
 | **Open Source** | Hugging Face, Unsloth |
@@ -61,15 +61,18 @@ cp .env.example .env
 ```
 
 | Variable | Description |
-|----------|-------------|
+| ---------- | ------------- |
 | `AZURE_OPENAI_ENDPOINT` | Azure AI Foundry endpoint (e.g. `https://your-resource.services.ai.azure.com/api/projects/your-project/openai/v1`) |
 | `AZURE_OPENAI_API_KEY` | API key |
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (e.g. `gpt-5.4-pro`) |
 | `AZURE_OPENAI_API_VERSION` | API version (e.g. `2025-04-01-preview`) |
+| `LOGIC_APP_URL` | Optional Logic App HTTP trigger URL for email publishing |
+| `EMAIL_RECIPIENTS` | Optional semicolon-separated email recipients |
+| `EMAIL_SENDER` | Optional sender metadata if your Logic App workflow expects it |
 
 ### 3. GitHub Actions Secrets
 
-Go to **Settings → Secrets and variables → Actions** and add the same 4 variables above.
+Go to **Settings → Secrets and variables → Actions** and add the Azure OpenAI variables above. Add the email variables only if a workflow or scheduled process sends email.
 
 ## CLI Commands
 
@@ -93,7 +96,7 @@ python main.py sources           # List all configured sources
 
 ## Data Structure
 
-```
+```text
 data/
 ├── ft_news.db          # SQLite (gitignored, rebuilt from JSON in CI)
 └── 2026/
@@ -129,7 +132,7 @@ Edit `_REDUCE_PROMPT` in `map_reduce.py` to change the weekly digest format, ton
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
+| ------- | ---------- |
 | No articles found | Check RSS URLs; run `python main.py ingest` to debug |
 | LLM errors | Verify Azure OpenAI credentials; check endpoint uses Responses API path |
 | Cached stale digest | Run `python main.py digest --force` to regenerate |

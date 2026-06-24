@@ -20,10 +20,8 @@ AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY", "")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5.4-pro")
 AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2025-04-01-preview")
 
-# Email via Microsoft Graph API
-GRAPH_TENANT_ID = os.getenv("GRAPH_TENANT_ID", "")
-GRAPH_CLIENT_ID = os.getenv("GRAPH_CLIENT_ID", "")
-GRAPH_CLIENT_SECRET = os.getenv("GRAPH_CLIENT_SECRET", "")
+# Email via Logic App HTTP trigger
+LOGIC_APP_URL = os.getenv("LOGIC_APP_URL", "")  # Logic App HTTP trigger URL (includes SAS token)
 EMAIL_SENDER = os.getenv("EMAIL_SENDER", "")  # e.g. you@microsoft.com
 EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS", "")  # semicolon-separated
 

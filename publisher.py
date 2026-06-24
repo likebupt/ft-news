@@ -1,4 +1,4 @@
-"""Email publisher - sends weekly digest via Microsoft Graph API."""
+"""Email publisher - sends weekly digest via Azure Logic App HTTP trigger."""
 
 from __future__ import annotations
 
@@ -6,21 +6,16 @@ import logging
 import re
 
 import httpx
-import msal
 
 from config import (
     EMAIL_RECIPIENTS,
     EMAIL_SENDER,
-    GRAPH_CLIENT_ID,
-    GRAPH_CLIENT_SECRET,
-    GRAPH_TENANT_ID,
+    LOGIC_APP_URL,
 )
 
 logger = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
-_GRAPH_SCOPE = ["https://graph.microsoft.com/.default"]
-_GRAPH_SEND_URL = "https://graph.microsoft.com/v1.0/users/{sender}/sendMail"
 
 
 def _markdown_to_html(markdown: str) -> str:
@@ -95,61 +90,26 @@ def _markdown_to_html(markdown: str) -> str:
     return "\n".join(html_parts)
 
 
-def _get_graph_token() -> str:
-    """Acquire an access token for Microsoft Graph using client credentials."""
-    app = msal.ConfidentialClientApplication(
-        GRAPH_CLIENT_ID,
-        authority=f"https://login.microsoftonline.com/{GRAPH_TENANT_ID}",
-        client_credential=GRAPH_CLIENT_SECRET,
-    )
-    result = app.acquire_token_for_client(scopes=_GRAPH_SCOPE)
-    if "access_token" not in result:
-        raise RuntimeError(
-            f"Failed to acquire Graph token: {result.get('error_description', result)}"
-        )
-    return result["access_token"]
-
-
-def _build_graph_payload(
-    digest: str,
-    subject: str,
-    recipients: str,
-) -> dict:
-    """Build the Graph API sendMail payload with HTML body."""
-    html_body = _markdown_to_html(digest)
-
-    to_recipients = [
-        {"emailAddress": {"address": addr.strip()}}
-        for addr in recipients.split(";")
-        if addr.strip()
-    ]
-
-    return {
-        "message": {
-            "subject": subject,
-            "body": {
-                "contentType": "HTML",
-                "content": html_body,
-            },
-            "toRecipients": to_recipients,
-        },
-        "saveToSentItems": "false",
-    }
-
-
 def send_email(
     digest: str,
     subject: str = "Weekly Finetuning & Post-Training Update",
 ) -> bool:
-    """Send the weekly digest as an email via Microsoft Graph API.
+    """Send the weekly digest via Azure Logic App HTTP trigger.
+
+    The Logic App should be configured with:
+      - HTTP Request trigger (accepts JSON)
+      - Send Email (Office 365 Outlook) action
+
+    Expected JSON payload:
+            { "subject": "...", "body": "<html>...", "to": "a@b.com;c@d.com" }
+            Optional: { "from": "sender@example.com" }
 
     Returns True on success, False on failure.
     """
-    if not all([GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, EMAIL_SENDER]):
+    if not LOGIC_APP_URL:
         logger.error(
-            "Graph API not configured. "
-            "Set GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, "
-            "and EMAIL_SENDER in .env."
+            "Logic App not configured. Set LOGIC_APP_URL in .env "
+            "(the HTTP trigger URL with SAS token)."
         )
         return False
 
@@ -158,34 +118,35 @@ def send_email(
         logger.error("No email recipients configured. Set EMAIL_RECIPIENTS in .env.")
         return False
 
-    try:
-        token = _get_graph_token()
-    except RuntimeError as exc:
-        logger.error("Graph auth failed: %s", exc)
-        return False
+    html_body = _markdown_to_html(digest)
 
-    payload = _build_graph_payload(digest, subject, recipients)
-    url = _GRAPH_SEND_URL.format(sender=EMAIL_SENDER)
+    payload = {
+        "subject": subject,
+        "body": html_body,
+        "to": recipients,
+    }
+    if EMAIL_SENDER:
+        payload["from"] = EMAIL_SENDER
 
     try:
         with httpx.Client(timeout=_TIMEOUT) as client:
             resp = client.post(
-                url,
+                LOGIC_APP_URL,
                 json=payload,
-                headers={"Authorization": f"Bearer {token}"},
+                headers={"Content-Type": "application/json"},
             )
             resp.raise_for_status()
 
-        logger.info("Email sent successfully (status %d)", resp.status_code)
+        logger.info("Logic App triggered successfully (status %d)", resp.status_code)
         return True
 
     except httpx.HTTPStatusError as exc:
         logger.error(
-            "Graph API returned HTTP %d: %s",
+            "Logic App returned HTTP %d: %s",
             exc.response.status_code,
             exc.response.text[:500],
         )
         return False
     except httpx.HTTPError as exc:
-        logger.error("Failed to reach Graph API: %s", exc)
+        logger.error("Failed to reach Logic App: %s", exc)
         return False
