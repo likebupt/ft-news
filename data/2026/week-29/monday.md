@@ -1,0 +1,15 @@
+## Weekly Digest
+
+### Academic / Open Research (arXiv)
+
+- **MedRealMM** — Introduces a benchmark for **real-world Chinese online medical consultations**, improving evaluation realism for multimodal medical assistants and domain post-training. [Paper](https://arxiv.org/abs/2607.09142)
+- **Scoped Verification for Reliable Long-Horizon Agentic Context Evolution under Distribution Shift** — Proposes **scoped verification** to keep mutable external context reliable in long-running agent deployments, helping prevent failures from context drift under distribution shift. [Paper](https://arxiv.org/abs/2607.09175)
+- **Git-Assistant: Planning-Based Support for Updating Git Repositories** — Uses a **planning-based approach** for repository updates, suggesting a more reliable path for coding agents than brittle free-form assistance on multi-step Git tasks. [Paper](https://arxiv.org/abs/2607.09224)
+- **Embodied Multi-Agent Coordination by Aligning World Models Through Dialogue** — Argues that embodied agents coordinate better when they **align internal world models through grounded dialogue**, not just exchange actions; relevant for dialogue-trace fine-tuning and belief-alignment objectives. [Paper](https://arxiv.org/abs/2605.12920)
+- **Does It Fail to See or Fail to Know? Attributing Errors in Vision-Language Models** — Separates VLM mistakes into **perception failures vs. knowledge failures**, helping teams decide whether to invest in vision tuning, multimodal instruction tuning, or retrieval/tool augmentation. [Paper](https://arxiv.org/abs/2607.04683)
+
+## Key Takeaways
+
+- A common theme this week is **diagnosing the real bottleneck**: benchmark realism in medical AI ([MedRealMM](https://arxiv.org/abs/2607.09142)), context drift in agents ([Scoped Verification](https://arxiv.org/abs/2607.09175)), belief mismatch in multi-agent systems ([World Models Through Dialogue](https://arxiv.org/abs/2605.12920)), and perception-vs-knowledge attribution in VLMs ([Fail to See or Fail to Know](https://arxiv.org/abs/2607.04683)).
+- For post-training teams, the takeaway is to use **targeted interventions**: realistic multimodal evaluation, verification of evolving agent context, structured planning for coding workflows, and better attribution frameworks before deciding where to fine-tune. [MedRealMM](https://arxiv.org/abs/2607.09142) · [Scoped Verification](https://arxiv.org/abs/2607.09175) · [Git-Assistant](https://arxiv.org/abs/2607.09224) · [VLM Attribution](https://arxiv.org/abs/2607.04683)
+- Overall, these papers reinforce a broader trend: **downstream gains increasingly come from structured post-training signals and operational safeguards**, not just scaling base models. [World Models Through Dialogue](https://arxiv.org/abs/2605.12920) · [Scoped Verification](https://arxiv.org/abs/2607.09175) · [Git-Assistant](https://arxiv.org/abs/2607.09224)
