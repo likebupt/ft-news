@@ -1,0 +1,6 @@
+**Apple**
+- Apple reports that *simple self-distillation* can improve code generation by training on a model’s own sampled outputs, without needing a teacher model, verifier, or RL loop. For finetuning, this suggests a much cheaper post-training recipe for code models when high-quality labels or reward infrastructure are limited. [Read more](https://machinelearning.apple.com/research/simple-self-distillation)
+- Apple proposes using *low-influence* training points to make machine unlearning far cheaper, potentially avoiding expensive full retraining for some removals. This matters for finetuning because SFT/alignment datasets increasingly face privacy, licensing, and policy-based deletions that need operationally feasible unlearning workflows. [Read more](https://machinelearning.apple.com/research/unlearning-free-low-influence)
+
+**OpenAI**
+- OpenAI introduced **GPT-Red**, an automated self-play red-teaming system aimed at finding weaknesses in robustness, alignment, and prompt-injection defenses. For finetuning, it can generate scalable adversarial data and failure cases to feed continuous safety post-training rather than relying only on manual red-team collection. [Read more](https://openai.com/index/unlocking-self-improvement-gpt-red)
