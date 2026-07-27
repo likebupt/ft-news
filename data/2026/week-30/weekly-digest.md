@@ -1,0 +1,9 @@
+### Amazon
+- Amazon is backing the Lean Focused Research Organization, which is pushing the Lean programming language as a way to mathematically verify the behavior of higher-stakes AI agents. For finetuning, this points toward post-training regimes that use formal proofs, verifier feedback, or proof-generating traces instead of relying only on preference tuning. [Read more](https://www.amazon.science/news/amazon-is-investing-in-the-lean-focused-research-organization)
+
+### Apple
+- Apple introduced an environment-free synthetic data generation method for API-calling agents, avoiding the need to build fully executable environments and populated backends just to create tool-use trajectories. This matters for finetuning because it could dramatically scale SFT/RL data for agentic tool use, especially for proprietary or long-tail APIs where real interaction data is expensive. [Read more](https://machinelearning.apple.com/research/environment-free)
+- Apple released LVSum, a benchmark for timestamp-aware long-video summarization that stresses both semantic quality and temporal grounding. For finetuning, it provides a concrete eval target for multimodal post-training on long-context video tasks where models often lose chronology or hallucinate event order. [Read more](https://machinelearning.apple.com/research/lvsum-video-summarization)
+
+### OpenAI
+- OpenAI shared lessons from deploying long-horizon models, including new failure modes, safety risks, and the safeguards it found effective through iterative deployment. This is directly relevant to post-training: long-running agents need trajectory-level alignment, monitoring, and evals that go well beyond single-turn SFT or RLHF. [Read more](https://openai.com/index/safety-alignment-long-horizon-models)
