@@ -1,0 +1,9 @@
+**Apple**
+- Apple introduced **Deep Low-Rank Residual Distillation**, a method for improving a pretrained model while keeping the original backbone weights frozen and moving the update into low-rank residual components. For finetuning, this is a PEFT-style approach that can reduce storage/compute costs and make derivative model updates easier to share over open-weight bases. [Read more](https://machinelearning.apple.com/research/locking-pretrained-weights)
+- Apple published a **comprehensive study of alignment in multimodal LLMs**, examining how preference-alignment/post-training affects vision-language behavior. It matters for finetuning because alignment recipes from text-only LLMs may not transfer cleanly to MLLMs, so data mix and objective design need to be modality-aware to avoid regressions. [Read more](https://machinelearning.apple.com/research/alignment-multimodal-llms)
+
+**Microsoft**
+- Microsoft Research released **Orchard**, an open framework for training and evaluating agentic AI across task types with reusable infrastructure. For finetuning, it offers a more standardized stack for post-training models on planning, tool use, and multi-step agent behaviors, while making evaluation easier to scale. [Read more](https://www.microsoft.com/en-us/research/blog/orchard-an-open-framework-for-scalable-agentic-ai/)
+
+**Amazon**
+- Amazon announced **34 Build on Trainium research-award recipients**, giving university teams access to Trainium credits for AI research, including responsible AI. This is indirectly relevant to finetuning because broader access to lower-cost training hardware can accelerate post-training experiments and improve fine-tuning tooling optimized for Trainium. [Read more](https://www.amazon.science/research-awards/latest-news/34-amazon-research-awards-build-on-trainium-recipients-announced)
