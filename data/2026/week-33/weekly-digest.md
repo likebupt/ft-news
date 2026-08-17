@@ -1,0 +1,12 @@
+**Microsoft Research**
+- **CARE-X:** Microsoft introduced CARE-X, a radiology VLM framework that combines auxiliary supervision, reward-aligned learning, and tool-augmented measurement for chest X-ray interpretation. For finetuning, it’s a strong example of domain-specific multimodal post-training that jointly improves reasoning, calibration, and tool use in a high-stakes setting. [Read more](https://www.microsoft.com/en-us/research/blog/introducing-care-x-towards-clinically-useful-radiology-vlms-with-auxiliary-supervision-reward-aligned-learning-and-tool-augmented-measurement/)
+- **MindTopo:** Microsoft released MindTopo, a benchmark for testing VLM understanding of topological and spatial relationships. It matters for finetuning because it surfaces failure modes that targeted synthetic data, curriculum design, or reward-based post-training could specifically address. [Read more](https://www.microsoft.com/en-us/research/blog/mindtopo-reveals-vlms-spatial-reasoning-abilities/)
+
+**Amazon Science**
+- **AWS Trainium Frontier competition:** AWS launched a competition around training language models on Trainium with co-designed model architectures and kernels. Although it is more about training than finetuning, the outcome could materially affect post-training cost/performance by shaping which architectures and kernels are best for efficient tuning on custom AWS silicon. [Read more](https://www.amazon.science/news/aws-trainium-frontier-competition-co-design-models-and-kernels-on-purpose-built-ai-chips)
+
+**Apple Machine Learning**
+- **When Unlearning Is Free:** Apple proposed a cheaper unlearning approach based on identifying low-influence training points whose removal has minimal model impact. This is relevant to finetuning because practical post-training pipelines increasingly need privacy-compliant data removal without paying the full cost of retraining or re-aligning models from scratch. [Read more](https://machinelearning.apple.com/research/unlearning-low-influence-points)
+
+**Hugging Face**
+- **Making Knowledge Distillation Cheap Enough to Run at Scale:** Hugging Face highlighted a lower-cost knowledge distillation workflow intended to make large-scale teacher-to-student transfer practical. This matters directly for post-training because distillation is a key way to compress finetuned/aligned models into smaller, cheaper deployable variants without repeating full SFT or preference optimization. [Read more](https://huggingface.co/blog/MultiverseComputingCAI/efficient-knowledge-distillation)
