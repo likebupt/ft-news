@@ -1,0 +1,9 @@
+**Microsoft Research**
+- Microsoft introduced **GigaPath-Flash** and **GigaTIME-Flash**, more compute-efficient pathology foundation models that keep strong performance while lowering resource demands for large-scale medical studies. For finetuning, cheaper backbones make domain adaptation on hospital-specific slide data and longitudinal pathology datasets much more practical. [Read more](https://www.microsoft.com/en-us/research/blog/gigapath-flash-and-gigatime-flash-toward-population-scale-discovery-with-efficient-pathology-foundation-models/)
+
+**Hugging Face**
+- Hugging Face showed how to **fine-tune a 350M model for structured outputs in just 100 GRPO steps**, improving format/schema adherence with lightweight RL post-training. This matters because it suggests small, inexpensive finetunes can materially improve reliability for JSON, tool-use, and other constrained-output workloads. [Read more](https://huggingface.co/blog/grpo-with-trl-ifstruct)
+- Hugging Face demonstrated training a **coding model with TRL and OpenEnv** to generate watercolor-style programs using environment-based feedback instead of static labels alone. For finetuning, it’s a useful example of RL in executable environments, where models can be specialized through task rewards derived from actually running code. [Read more](https://huggingface.co/blog/train-to-paint-with-code)
+
+**Amazon Science**
+- Amazon Science detailed how **Verus** can be used to develop provably correct Rust code by verifying programs against formal specifications. For finetuning, formal verifiers are important because they can provide high-quality evaluation signals or rewards for post-training code models toward correctness, not just passable syntax. [Read more](https://www.amazon.science/blog/developing-provably-correct-rust-code-with-verus)
