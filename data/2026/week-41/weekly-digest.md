@@ -1,0 +1,11 @@
+**Microsoft Research**
+- **Agent Lightning v1.0** introduces a lightweight RL framework that plugs existing agents into reinforcement learning using their real tool/runtime harnesses, instead of requiring bespoke training rewrites. For finetuning, this is notable because it lowers the engineering barrier to post-training tool-using and multi-step agents with RL on realistic trajectories. [Read more](https://www.microsoft.com/en-us/research/blog/agent-lightning-v1-0-a-3500-line-lightweight-agentic-rl-framework-for-training-agents-with-real-harnesses/)
+
+**Databricks**
+- Databricks profiled how TinyFish takes a web-native model from post-training into production on Databricks AI Runtime, supporting live-web agent workflows like search, fetch, and browser actions. For finetuning teams, it matters as a case study in bridging post-training infrastructure with serving/runtime requirements for web-grounded agents. [Read more](https://www.databricks.com/blog/post-training-production-how-tinyfish-runs-its-web-native-model-databricks-ai-runtime)
+
+**Apple**
+- **RISED** proposes rubric-driven selection plus self-distillation for training one LLM agent across multiple interactive environments, aiming to allocate training effort more effectively than coarse environment-level curricula. This matters for finetuning because multi-environment data selection is becoming a key bottleneck in agent post-training, and RISED offers a more targeted recipe for improving generalist agents. [Read more](https://machinelearning.apple.com/research/rised-multi-environment-selection)
+
+**Hugging Face / NVIDIA**
+- Hugging Face highlighted NVIDIA’s results fine-tuning the Nemotron family to achieve gold-level outcomes on IOI and IMO-style tasks, showing one model family can be specialized to excel in both coding and math. For finetuning, the takeaway is that strong domain-adaptive post-training recipes can push a general base model into elite reasoning regimes without needing separate architectures for each benchmark. [Read more](https://huggingface.co/blog/nvidia/nemotron-ioi-and-imo-2026)
